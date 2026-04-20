@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bloom — Pregnancy Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f9f8f5; color: #2d3748; }
+    .serif { font-family: 'Lora', serif; }
+    input[type=range] { accent-color: #6b9e7e; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    .modal-bg { background: rgba(0,0,0,0.45); backdrop-filter: blur(3px); }
+  </style>
+</head>
+<body class="min-h-screen pb-20">
+
+<!-- ONBOARDING MODAL -->
+<div id="onboarding" class="fixed inset-0 z-50 modal-bg flex items-center justify-center p-4 hidden">
+  <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full fade-in">
+    <h1 class="serif text-2xl text-[#4a7c5e] mb-1">Welcome to Bloom</h1>
+    <p class="text-stone-500 text-sm mb-6">Your gentle guide through every week of pregnancy.</p>
+    <div class="mb-4">
+      <label class="block text-xs font-medium text-stone-600 mb-1">Your first name</label>
+      <input id="ob-name" type="text" placeholder="e.g. Sarah" class="w-full border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6b9e7e] text-stone-700">
+    </div>
+    <div class="mb-6">
+      <label class="block text-xs font-medium text-stone-600 mb-1">Current week of pregnancy</label>
+      <div class="flex items-center gap-3">
+        <input id="ob-week" type="number" min="1" max="40" placeholder="e.g. 12" class="w-full border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6b9e7e] text-stone-700">
+        <span class="text-stone-400 text-sm whitespace-nowrap">/ 40</span>
+      </div>
+    </div>
+    <button onclick="submitOnboarding()" class="w-full bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white rounded-xl py-3 font-medium transition-colors">Begin my journey</button>
+  </div>
+</div>
+
+<!-- BP ALERT -->
+<div id="bp-alert" class="hidden fixed top-0 left-0 right-0 z-40 bg-red-50 border-b border-red-200 px-4 py-3 flex items-start gap-3">
+  <span class="text-red-500 mt-0.5">&#9888;</span>
+  <p class="text-red-700 text-sm flex-1">Your blood pressure has been elevated on two or more recent readings — consider speaking to your midwife.</p>
+  <button onclick="document.getElementById('bp-alert').classList.add('hidden')" class="text-red-400 hover:text-red-600 text-xl leading-none">&#215;</button>
+</div>
+
+<!-- HEADER -->
+<header class="bg-white/80 backdrop-blur-sm sticky top-0 z-30 border-b border-stone-100 px-4 py-3 flex items-center justify-between">
+  <div>
+    <h1 class="serif text-xl text-[#4a7c5e]">Bloom</h1>
+    <p id="header-sub" class="text-xs text-stone-400"></p>
+  </div>
+  <div class="text-right">
+    <p id="header-week" class="text-sm font-medium text-[#6b9e7e]"></p>
+    <p id="header-name" class="text-xs text-stone-400"></p>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="max-w-lg mx-auto">
+
+  <!-- TIMELINE -->
+  <div id="tab-timeline" class="tab-pane px-4 py-4">
+    <div id="timeline-list" class="space-y-3"></div>
+  </div>
+
+  <!-- TRACKING -->
+  <div id="tab-tracking" class="tab-pane hidden px-4 py-4">
+    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 mb-5">
+      <h2 class="serif text-lg text-[#4a7c5e] mb-4">Log today</h2>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-medium text-stone-500 mb-1">Systolic (mmHg)</label>
+          <input id="t-sys" type="number" placeholder="120" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-stone-500 mb-1">Diastolic (mmHg)</label>
+          <input id="t-dia" type="number" placeholder="80" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-medium text-stone-500 mb-1">Weight (kg)</label>
+          <input id="t-weight" type="number" step="0.1" placeholder="65.0" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-stone-500 mb-1">Sleep (hours)</label>
+          <input id="t-sleep" type="number" step="0.5" placeholder="7.5" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="block text-xs font-medium text-stone-500 mb-1">Mood</label>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-stone-400">1</span>
+          <input id="t-mood" type="range" min="1" max="5" value="3" class="flex-1">
+          <span class="text-xs text-stone-400">5</span>
+          <span id="t-mood-val" class="text-sm text-[#6b9e7e] w-5 text-center font-semibold">3</span>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="block text-xs font-medium text-stone-500 mb-2">Symptoms</label>
+        <div class="flex flex-wrap gap-2">
+          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'nausea')">Nausea</button>
+          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'headache')">Headache</button>
+          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'swelling')">Swelling</button>
+          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'fatigue')">Fatigue</button>
+          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'back pain')">Back pain</button>
+          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'other')">Other</button>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-stone-500 mb-1">Notes</label>
+        <textarea id="t-notes" rows="2" placeholder="How are you feeling today?" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e] resize-none"></textarea>
+      </div>
+      <button onclick="saveLog()" class="w-full bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white rounded-xl py-2.5 text-sm font-medium transition-colors">Save entry</button>
+      <div id="save-ok" class="hidden text-center text-[#6b9e7e] text-sm mt-2 font-medium">&#10003; Entry saved</div>
+    </div>
+    <div class="space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Blood pressure &#8212; last 7 entries</h3>
+        <div id="chart-bp" class="h-14"></div>
+        <div class="flex gap-4 mt-2"><span class="text-xs text-[#e05c5c]">&#8212; Systolic</span><span class="text-xs text-[#e09a5c]">&#8212; Diastolic</span></div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Weight (kg) &#8212; last 7</h3>
+        <div id="chart-weight" class="h-14"></div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Mood &#8212; last 7</h3>
+        <div id="chart-mood" class="h-14"></div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Sleep (hrs) &#8212; last 7</h3>
+        <div id="chart-sleep" class="h-14"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPECIALISTS -->
+  <div id="tab-specialists" class="tab-pane hidden px-4 py-4">
+    <p class="text-stone-500 text-sm mb-5">UK-based specialists who support you through pregnancy and beyond.</p>
+    <div id="specialists-list" class="space-y-4"></div>
+  </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-100 flex z-30">
+  <button onclick="switchTab('timeline')" id="nav-timeline" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-[#6b9e7e]">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    <span class="text-xs font-medium">Timeline</span>
+  </button>
+  <button onclick="switchTab('tracking')" id="nav-tracking" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    <span class="text-xs font-medium">Tracking</span>
+  </button>
+  <button onclick="switchTab('specialists')" id="nav-specialists" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    <span class="text-xs font-medium">Specialists</span>
+  </button>
+</nav>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+var appState = { name:'', currentWeek:12, logs:[] };
+var activeSymptoms = new Set();
+
+// ── Week data (weeks 1-40) ───────────────────────────────────────────────────
+var WD = {
+  1:{b:"Fertilisation may have just occurred. A single zygote containing all your baby's genetic information is forming. This tiny cell will divide rapidly as it travels toward the uterus.",m:"You may not know you're pregnant yet. Your body is quietly preparing the uterine lining. Hormone levels are beginning to shift.",w:"Start 400mcg folic acid daily if you haven't already — crucial in these early weeks for neural tube development.",a:"Begin taking folic acid and book a GP appointment to confirm pregnancy."},
+  2:{b:"The blastocyst is implanting into the uterine lining. Cells are differentiating into those that will become your baby and those that will form the placenta.",m:"Some women notice light implantation spotting. Your body is beginning to produce hCG, the hormone detected by pregnancy tests.",w:"Any heavy vaginal bleeding warrants a call to your GP. Light spotting at implantation is usually nothing to worry about.",a:"Take a home pregnancy test if your period is late."},
+  3:{b:"The embryo is the size of a poppy seed. The neural tube — future brain and spinal cord — is beginning to form. Three distinct cell layers are developing.",m:"Early symptoms may begin: mild nausea, tender breasts, fatigue. Your uterus is starting to grow, though invisibly.",w:"Avoid alcohol, raw fish, and unpasteurised dairy from this point on.",a:"Register with a midwife or maternity unit — early booking before 10 weeks is recommended."},
+  4:{b:"About the size of a lentil. The heart is beginning to form and will start beating soon. The foundations of the brain, spinal cord, and major organs are being laid down.",m:"Nausea may be intensifying, especially in the morning. Fatigue can feel overwhelming. Frequent urination is common as blood flow to kidneys increases.",w:"If nausea stops you keeping fluids down, speak to your midwife about hyperemesis gravidarum.",a:"Inform your employer when you feel ready — you're entitled to paid time off for antenatal appointments."},
+  5:{b:"The size of a sesame seed, with a beating heart at 100-160 bpm. Arm and leg buds are emerging. Small indentations mark where eyes and nostrils will form.",m:"Morning sickness is often at its peak. Your sense of smell may be heightened. Waistbands might feel tighter.",w:"One-sided pelvic pain or shoulder tip pain can indicate ectopic pregnancy — contact your midwife urgently.",a:"Book your dating scan, usually offered between 10-14 weeks."},
+  6:{b:"The size of a blueberry (about 6mm). The brain is growing rapidly. Tiny fingers and toes are budding, and the nose and jaw are taking shape.",m:"Fatigue and nausea are very common. Breasts may feel heavy and sore. Mood swings are normal as hormones fluctuate.",w:"Report any vaginal bleeding promptly. Ask your midwife about safe antiemetics if nausea is severe.",a:"Attend your first midwife booking appointment — this includes blood tests and a full health assessment."},
+  7:{b:"The size of a raspberry (about 1cm). Paddle-shaped hands and feet are developing. The brain is forming at nearly 100 new neurons per minute.",m:"Increased saliva can worsen nausea. Bloating and constipation are common due to progesterone slowing digestion.",w:"Stay well hydrated. Extra fibre, water, and gentle movement help with constipation.",a:"Research antenatal classes in your area — popular ones fill quickly, so book early."},
+  8:{b:"The size of a kidney bean (about 1.6cm). All major organs are present in early form. Fingers and toes are separating; the embryo is beginning to move spontaneously.",m:"Nausea may ease slightly, though it persists for many until 12 weeks. Clothes may feel tighter. Heartburn can begin.",w:"Severe or worsening heartburn is worth mentioning — safe antacids are available in pregnancy.",a:"Begin a pregnancy journal to track symptoms and milestones."},
+  9:{b:"Now officially a foetus, about 2.3cm. The embryonic tail is gone. Cartilage and bones are forming. The reproductive organs are developing.",m:"Your uterus is the size of a large orange. You may feel pulling sensations as it grows. Vivid dreams are common.",w:"Round ligament pain — sharp twinges at your sides — is normal but mention it at your next appointment.",a:"Check eligibility for NHS Healthy Start vouchers for free vitamins and food support."},
+  10:{b:"About 3.1cm — the size of a strawberry. Vital organs are all formed and beginning to function. The baby can swallow amniotic fluid; fingernails are appearing.",m:"The miscarriage risk drops significantly after this week. Energy may start to return. You may feel a little more like yourself.",w:"Discuss genetic screening options with your midwife if you haven't yet.",a:"Confirm your 12-week dating scan and ask about combined screening for chromosomal conditions."},
+  11:{b:"About 4.1cm — the size of a lime. Hair follicles are forming. The baby's reflexes are developing and they may startle at loud noises. The heartbeat is clearly visible on scan.",m:"Nausea often begins to ease around now. Energy may start returning. Your waistline is visibly thickening.",w:"If you haven't had your first midwife appointment yet, call your surgery today.",a:"Think about who you want as your birth partner and have that conversation with them."},
+  12:{b:"About 5.4cm — the size of a plum. The face looks increasingly human, with eyes moving closer together. The kidneys are producing urine into the amniotic fluid.",m:"The 12-week scan is a major milestone — the first time most parents see their baby moving. Nausea typically begins to subside.",w:"This scan also screens for chromosomal conditions — ask the sonographer to explain what they're checking.",a:"Share your news more widely if you wish — most people wait until after this scan."},
+  13:{b:"Welcome to the second trimester. About 7.4cm — the size of a peach. Bones are hardening, vocal cords are forming, and fingerprints are beginning to develop.",m:"Most women feel a marked improvement in energy and nausea. Your bump may begin to show. Blood volume continues to increase.",w:"Round ligament pain may increase as your uterus grows — gentle stretching and warmth help.",a:"Register for NHS antenatal classes or look into NCT, hypnobirthing, or private courses."},
+  14:{b:"About 8.7cm — the size of a lemon. The baby can now make facial expressions. Lanugo (fine downy hair) is covering the body to help regulate temperature.",m:"The second trimester often brings a welcome energy boost. Appetite may return. Skin and hair may improve due to rising oestrogen.",w:"Leg cramps, especially at night, are common — stay hydrated and stretch before bed.",a:"Book a dental check-up — NHS dental care is free during pregnancy, and hormones affect gum health."},
+  15:{b:"About 10cm — the size of a pear. Legs are now longer than arms. The baby can sense light and is practising breathing by inhaling amniotic fluid.",m:"Many women feel their best during weeks 14-28. Your bump is growing noticeably. You may begin to feel subtle fluttery movements.",w:"First-time mothers often don't feel movement until 18-22 weeks — don't worry if you haven't yet.",a:"Start researching birth options: midwife-led unit, hospital, or home birth."},
+  16:{b:"About 11.6cm — the size of an avocado. Eyes are making small movements. Hearing is developing; your baby can hear muffled sounds including your voice.",m:"You may be clearly showing now. Back pain can begin as your centre of gravity shifts. Nosebleeds and congestion are common.",w:"Avoid heavy lifting if you have back pain. Consider a pregnancy support belt.",a:"Consider starting pregnancy-safe exercise — swimming, yoga, and walking are ideal."},
+  17:{b:"About 13cm — the size of a turnip. Vernix (a protective coating) is forming over the skin. The skeleton is changing from cartilage to hardening bone.",m:"Your uterus is now roughly melon-sized. Braxton Hicks — painless practice contractions — may begin. Stretch marks may appear.",w:"Braxton Hicks are normal, but if tightenings are painful or regular, contact your midwife.",a:"Order a pregnancy pillow — sleep quality often declines from now and it makes a real difference."},
+  18:{b:"About 14.2cm — the size of a bell pepper. The baby is very active now. The ears are in their final position and the baby may respond to your voice.",m:"Many women feel first movements between weeks 16-20 — described as flutters, bubbles, or gentle taps. Blood pressure may be lower than usual.",w:"Rise slowly from lying or sitting to avoid dizziness. Report frequent fainting to your midwife.",a:"Begin researching birth preferences and what a birth plan typically covers."},
+  19:{b:"About 15.3cm — the size of a mango. Vernix caseosa is coating the skin. The sensory brain areas — taste, smell, sight, touch, hearing — are all developing.",m:"Your bump is growing steadily. The linea nigra and skin pigmentation changes are common. Hair may feel thicker and shinier.",w:"Pelvic girdle pain (PGP/SPD) can begin now — ask for a physiotherapy referral if walking becomes uncomfortable.",a:"Prepare a list of questions for your 20-week anomaly scan next week."},
+  20:{b:"About 25cm — the size of a banana. Halfway! All major body systems are formed. The baby swallows amniotic fluid regularly, helping develop the digestive system.",m:"You're halfway there! Many women feel energy peaking around now. The anomaly scan offers detailed information about your baby's development.",w:"The 20-week scan checks for structural conditions — the sonographer examines the heart, brain, spine, kidneys, and more.",a:"Attend your 20-week anomaly scan. Ask if you'd like to know the sex."},
+  21:{b:"About 27cm and 360g. Eyebrows and eyelids are fully formed. The baby is swallowing more amniotic fluid, which helps develop taste buds.",m:"You should be feeling regular movements now. Your belly button may begin to pop out. Skin stretching can cause itching — keep skin moisturised.",w:"Intense itching, especially on palms and soles, can indicate obstetric cholestasis — contact your midwife.",a:"Start moisturising your bump daily to support skin elasticity."},
+  22:{b:"About 28cm. The baby's grip is strong and they may be sucking their thumb. The inner ear is fully developed — they can now hear clearly.",m:"Your centre of gravity continues to shift. Swollen ankles and feet are common, especially in the evening.",w:"Sudden swelling that affects the face or comes on rapidly warrants immediate contact with your midwife.",a:"Look into perineal massage to prepare for birth — many start around 35 weeks but it's good to know about now."},
+  23:{b:"About 29cm and 500g. The baby's lungs are developing rapidly. Fingerprints are fully formed. They're practising breathing movements.",m:"Lower back and hip pain are common as ligaments soften. You may feel winded more easily as the uterus grows.",w:"Report any sudden decrease in your baby's movement to your midwife promptly.",a:"Begin researching cord blood banking and delayed cord clamping ahead of your birth plan."},
+  24:{b:"About 30cm and 600g. The baby's face is almost fully formed. REM sleep is occurring — your baby may be dreaming.",m:"The uterus is now roughly at your belly button. Heartburn and indigestion are common. Small frequent meals help.",w:"Your 25-week appointment is coming up — it includes a blood pressure check and urine test. Don't miss it.",a:"Complete the MATB1 form with your midwife — you'll need it to claim maternity pay."},
+  25:{b:"About 34cm and 660g. The baby is putting on fat, giving a more rounded appearance. Their nostrils are opening and they're practising breathing.",m:"Feet and ankles may swell more. Sleep can become more disrupted. Round ligament pain may intensify.",w:"Burning or painful urination may indicate a UTI — treat promptly as UTIs in pregnancy can cause complications.",a:"Research and begin a list for your maternity bag — it's never too early."},
+  26:{b:"About 35cm and 760g. The retinas are developed and the baby can respond to light and dark. White fat is building up under the skin.",m:"You may feel short of breath as the uterus pushes on the diaphragm. Pregnancy brain is real and common.",w:"Your 28-week appointment will include a glucose tolerance test if you're at risk of gestational diabetes.",a:"Begin drafting your birth plan and discuss it with your midwife at your next appointment."},
+  27:{b:"About 36cm and 875g. The baby has established sleep and wake cycles. Their immune system is developing through antibodies passed via the placenta.",m:"The third trimester is approaching. Fatigue may return. Frequent urination is common again as the baby presses on the bladder.",w:"At 28 weeks, if you are Rhesus negative, you will be offered an anti-D injection. Attend this appointment.",a:"Finalise your maternity leave dates and notify your employer in writing."},
+  28:{b:"Welcome to the third trimester. About 37cm and 1kg. The baby's brain is rapidly maturing. Their eyes can open and close and they respond to light.",m:"You may feel more tired and experience more Braxton Hicks. Swelling, heartburn, and difficulty sleeping are common. Rest when you can.",w:"From 28 weeks, you should feel your baby move every day. Contact your midwife immediately if movement reduces.",a:"Attend your 28-week midwife appointment — blood tests and blood pressure check are done here."},
+  29:{b:"About 38cm and 1.15kg. The baby is gaining weight rapidly. Brain, lungs, and muscles are maturing at pace.",m:"Breathlessness, heartburn, and back pain may intensify. Small, frequent meals help with heartburn.",w:"Keep a daily record of your baby's movements. If the pattern changes, contact your midwife the same day.",a:"Book a tour of your maternity unit or birth centre if you plan to give birth there."},
+  30:{b:"About 40cm and 1.3kg. The baby is practising breathing regularly and can distinguish light from dark. Fingernails are growing.",m:"The bump is large now and may feel heavy. Waddling is normal — the pelvis is widening. Sleep may require a pillow between the knees.",w:"Gestational diabetes screening should be completed if not already done. Report unusual thirst or very frequent urination.",a:"Pack the essentials for your hospital bag — nappies, baby clothes, your notes, snacks, and comfort items."},
+  31:{b:"About 41cm and 1.5kg. The baby is plumping up. Their kicks and movements are stronger and more purposeful.",m:"Pelvic pressure is increasing. You may experience lightning crotch — sharp shooting pains — as the baby descends.",w:"If you experience more than 5 contractions in an hour, contact your midwife or triage immediately.",a:"Complete your birth plan and share it with your birth partner so they can advocate for you."},
+  32:{b:"About 42cm and 1.7kg. The baby is settling into a head-down position. Lanugo is shedding; vernix remains.",m:"Fatigue is common. Shortness of breath may ease if the baby drops. Swelling in hands and feet is normal.",w:"Preeclampsia symptoms — severe headache, visual disturbances, upper abdominal pain, sudden swelling — require immediate medical attention.",a:"Attend your 32-week midwife appointment and discuss the baby's position."},
+  33:{b:"About 43cm and 1.9kg. The immune system is receiving a surge of antibodies. Skull bones are hardening but remain flexible for birth.",m:"Sleep disruption is common. You may feel very aware of every movement. Braxton Hicks may feel more intense.",w:"If you haven't discussed pain relief options with your midwife yet, do so now — feel informed before labour.",a:"Finalise your birth partner's role and make sure they know your wishes and where to take you."},
+  34:{b:"About 45cm and 2.1kg. The lungs are nearly fully mature — a baby born now has excellent survival rates. The baby is increasingly cramped.",m:"You may feel very heavy and uncomfortable. Sleeping on your left side is recommended to improve blood flow.",w:"Lie on your side rather than your back when resting — lying flat can reduce blood flow to the baby from around this point.",a:"Freeze some batch-cooked meals for after the birth — you'll thank yourself."},
+  35:{b:"About 46cm and 2.4kg. The baby is gaining roughly 200g per week. Most organ systems are fully mature.",m:"The baby may begin to engage (drop into the pelvis). This can relieve breathlessness but increase pelvic pressure.",w:"Continue monitoring movements daily. Any significant reduction should prompt an immediate call to your midwife.",a:"Start perineal massage if you haven't already — evidence suggests it helps reduce tearing."},
+  36:{b:"About 47cm and 2.6kg. Nearly full term. The skull remains soft and flexible, with overlapping plates to help with birth.",m:"You're likely feeling very ready now. Cervical changes may cause more discharge. Nesting instincts are common and normal.",w:"If you notice a gush of fluid, ring labour triage — your waters may have broken. Call immediately if it's green, brown, or blood-stained.",a:"Attend your 36-week appointment — the midwife will check the baby's position and discuss your birth plan."},
+  37:{b:"About 48cm and 2.9kg. Your baby is now considered full term. The lungs are mature, and all systems are ready for independent life.",m:"You may lose the mucus plug (show) — a sign the cervix is beginning to change. Labour could be days or weeks away.",w:"Stay within reasonable distance of your birth place from this point. Keep your phone charged.",a:"Do a final check of your hospital bag. Confirm your birth partner knows the route and has the car seat fitted."},
+  38:{b:"About 49cm and 3.1kg. The baby's brain and nervous system are continuing to develop — this will carry on for years after birth.",m:"Pelvic pressure and practice contractions may intensify. You may feel very heavy and ready. Rest as much as you can.",w:"True labour contractions are regular, intensifying, and don't ease with movement. Braxton Hicks ease when you move.",a:"Rest, eat well, and stay as comfortable as possible. Your body is doing an incredible job."},
+  39:{b:"About 50cm and 3.3kg. The baby is ready. They carry antibodies from you to protect against infections in early life.",m:"Labour could begin any time. Signs include a show, waters breaking, or regular contractions every 5 minutes lasting 60 seconds.",w:"If your waters break and the fluid is green or brown, contact triage immediately — this is meconium and needs assessment.",a:"Trust your instincts. When something feels different, call your midwife or triage — you're never wasting their time."},
+  40:{b:"About 51cm and 3.5kg — fully grown and ready to meet you. The placenta is at maximum capacity and your baby is perfectly prepared for birth.",m:"You've made it to your due date. Only 4% of babies arrive on their due date exactly — try to stay patient and rested.",w:"If labour hasn't started by 40-42 weeks, your midwife will discuss induction options with you.",a:"Rest, stay connected with people who love you, and know that your body knows what it's doing. You're almost there."}
+};
+
+function getWD(w) {
+  return WD[w] || {
+    b:"At week "+w+", your baby continues to grow and mature. Movements are becoming stronger and organs are developing further.",
+    m:"Your body is adapting to support your growing baby. Your bump is growing and you may feel more movement. Rest and keep appointments.",
+    w:"Attend all antenatal appointments and report any unusual symptoms — reduced movement, heavy bleeding, or severe pain — promptly to your midwife.",
+    a:"Keep antenatal appointments up to date and continue with pregnancy-safe exercise and a balanced diet."
+  };
+}
+
+// ── Specialists ──────────────────────────────────────────────────────────────
+var SPECS = [
+  {type:"Private Midwife",name:"Sophie Hargreaves RM",desc:"Experienced independent midwife offering full continuity of care throughout pregnancy, birth, and the postnatal period.",avail:"Mon 21 Apr",price:"150",email:"s.hargreaves@bloombirthcare.co.uk"},
+  {type:"Doula",name:"Amara Osei-Mensah",desc:"Birth and postnatal doula providing emotional, physical, and informational support throughout labour and the fourth trimester.",avail:"Wed 23 Apr",price:"120",email:"amara@birthcompanion.co.uk"},
+  {type:"Lactation Consultant",name:"Dr. Helen Forsythe IBCLC",desc:"International Board Certified Lactation Consultant specialising in breastfeeding challenges, latch issues, and infant feeding.",avail:"Thu 24 Apr",price:"90",email:"helen@feedingfirst.co.uk"},
+  {type:"Pelvic Floor Physio",name:"Laura Whitfield MSc MCSP",desc:"Specialist women's health physiotherapist focusing on pelvic health, pregnancy pain, and postnatal recovery.",avail:"Fri 25 Apr",price:"85",email:"l.whitfield@pelvichealth.co.uk"},
+  {type:"Obstetric Consultant",name:"Mr. Rajesh Mehta FRCOG",desc:"Consultant obstetrician with expertise in high-risk pregnancies, VBAC, and complex maternal health needs.",avail:"Tue 29 Apr",price:"200",email:"r.mehta@maternalconsult.co.uk"},
+  {type:"Perinatal Mental Health",name:"Dr. Clara Steinberg CPsychol",desc:"Chartered psychologist specialising in perinatal anxiety, birth trauma, tokophobia, and postnatal depression.",avail:"Mon 28 Apr",price:"120",email:"clara@perinatalmind.co.uk"}
+];
+
+// ── Sparkline ────────────────────────────────────────────────────────────────
+function spark(vals, color) {
+  if (!vals || vals.length === 0) return '<p class="text-xs text-stone-300 italic pt-2">No data yet</p>';
+  var W=280,H=48,p=6;
+  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=mx-mn||1;
+  var pts=vals.map(function(v,i){ return [p+(i/Math.max(vals.length-1,1))*(W-2*p), H-p-((v-mn)/rng)*(H-2*p)]; });
+  var d=pts.map(function(pt,i){ return (i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1); }).join(' ');
+  var dots=pts.map(function(pt){ return '<circle cx="'+pt[0].toFixed(1)+'" cy="'+pt[1].toFixed(1)+'" r="3" fill="'+color+'"/>'; }).join('');
+  var last=pts[pts.length-1];
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="w-full" style="overflow:visible"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+dots+'<text x="'+(last[0]+5)+'" y="'+(last[1]+4)+'" font-size="9" fill="'+color+'">'+vals[vals.length-1]+'</text></svg>';
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+window.onload = function() {
+  var s = localStorage.getItem('bloom');
+  if (s) { var p=JSON.parse(s); appState.name=p.name||''; appState.currentWeek=p.currentWeek||12; appState.logs=p.logs||[]; }
+  if (!appState.name) { document.getElementById('onboarding').classList.remove('hidden'); return; }
+  boot();
+};
+
+function persist() { localStorage.setItem('bloom', JSON.stringify(appState)); }
+
+function submitOnboarding() {
+  var n=document.getElementById('ob-name').value.trim();
+  var w=parseInt(document.getElementById('ob-week').value);
+  if (!n || !w || w<1 || w>40) { alert('Please enter your name and a week between 1 and 40.'); return; }
+  appState.name=n; appState.currentWeek=w;
+  persist();
+  document.getElementById('onboarding').classList.add('hidden');
+  boot();
+}
+
+function boot() {
+  updateHeader();
+  renderTimeline();
+  renderSpecialists();
+  renderCharts();
+  checkBP();
+  document.getElementById('t-mood').oninput = function() { document.getElementById('t-mood-val').textContent = this.value; };
+}
+
+function updateHeader() {
+  document.getElementById('header-name').textContent = appState.name;
+  document.getElementById('header-week').textContent = 'Week '+appState.currentWeek+' of 40';
+  var left = 40 - appState.currentWeek;
+  document.getElementById('header-sub').textContent = left > 0 ? left+' weeks to go' : 'Due any day now';
+}
+
+// ── Timeline ─────────────────────────────────────────────────────────────────
+function renderTimeline() {
+  var el = document.getElementById('timeline-list');
+  el.innerHTML = '';
+  var scrollTarget = null;
+  for (var w=1; w<=40; w++) {
+    var d = getWD(w);
+    var past = w < appState.currentWeek;
+    var cur  = w === appState.currentWeek;
+    var div  = document.createElement('div');
+    div.className = 'rounded-2xl border p-4 ' + (cur ? 'bg-[#6b9e7e] border-[#6b9e7e] shadow-lg' : past ? 'bg-white border-stone-100 opacity-50' : 'bg-white border-stone-100');
+    var badge = cur ? '<span class="text-[10px] bg-white/25 text-white rounded-full px-2 py-0.5 font-medium">This week</span>'
+              : w>appState.currentWeek ? '<span class="text-[10px] bg-stone-100 text-stone-400 rounded-full px-2 py-0.5">Coming up</span>' : '';
+    var tc = cur ? 'text-white' : 'text-[#4a7c5e]';
+    var ts = cur ? 'text-white/75' : 'text-stone-500';
+    var ti = cur ? 'text-white/70' : 'text-[#6b9e7e]';
+    var tb = cur ? 'border-white/20' : 'border-stone-100';
+    var ta = cur ? 'text-white font-semibold' : 'text-stone-700 font-medium';
+    div.innerHTML =
+      '<div class="flex items-center justify-between mb-3"><span class="'+tc+' font-semibold serif text-base">Week '+w+'</span>'+badge+'</div>'+
+      '<div class="space-y-3">'+
+        '<div><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#127807; Your baby</p><p class="'+ts+' text-sm leading-relaxed">'+d.b+'</p></div>'+
+        '<div class="border-t '+tb+' pt-3"><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#129340; How you may feel</p><p class="'+ts+' text-sm leading-relaxed">'+d.m+'</p></div>'+
+        '<div class="border-t '+tb+' pt-3"><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#9889; Watch for</p><p class="'+ts+' text-sm leading-relaxed">'+d.w+'</p></div>'+
+        '<div class="border-t '+tb+' pt-3"><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#10003; This week</p><p class="'+ta+' text-sm leading-relaxed">'+d.a+'</p></div>'+
+      '</div>';
+    el.appendChild(div);
+    if (cur) scrollTarget = div;
+  }
+  if (scrollTarget) setTimeout(function(){ scrollTarget.scrollIntoView({behavior:'smooth',block:'start'}); },150);
+}
+
+// ── Tracking ─────────────────────────────────────────────────────────────────
+function toggleSym(btn, s) {
+  if (activeSymptoms.has(s)) {
+    activeSymptoms.delete(s);
+    btn.className = 'sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500';
+  } else {
+    activeSymptoms.add(s);
+    btn.className = 'sym-chip px-3 py-1 rounded-full text-xs border border-[#6b9e7e] bg-[#6b9e7e] text-white';
+  }
+}
+
+function saveLog() {
+  var sys=parseInt(document.getElementById('t-sys').value)||null;
+  var dia=parseInt(document.getElementById('t-dia').value)||null;
+  appState.logs.push({
+    date: new Date().toISOString(),
+    sys: sys, dia: dia,
+    weight: parseFloat(document.getElementById('t-weight').value)||null,
+    sleep:  parseFloat(document.getElementById('t-sleep').value)||null,
+    mood:   parseInt(document.getElementById('t-mood').value),
+    symptoms: Array.from(activeSymptoms),
+    notes: document.getElementById('t-notes').value.trim()
+  });
+  persist();
+  ['t-sys','t-dia','t-weight','t-sleep','t-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('t-mood').value=3;
+  document.getElementById('t-mood-val').textContent='3';
+  activeSymptoms.clear();
+  document.querySelectorAll('.sym-chip').forEach(function(c){ c.className='sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500'; });
+  var ok=document.getElementById('save-ok');
+  ok.classList.remove('hidden'); setTimeout(function(){ ok.classList.add('hidden'); },2000);
+  renderCharts(); checkBP();
+}
+
+function renderCharts() {
+  var r = appState.logs.slice(-7);
+  var sys=r.map(function(l){return l.sys;}).filter(Boolean);
+  var dia=r.map(function(l){return l.dia;}).filter(Boolean);
+  var bpEl=document.getElementById('chart-bp');
+  bpEl.innerHTML = sys.length ? spark(sys,'#e05c5c')+spark(dia,'#e09a5c') : '<p class="text-xs text-stone-300 italic pt-2">No data yet</p>';
+  document.getElementById('chart-weight').innerHTML = spark(r.map(function(l){return l.weight;}).filter(Boolean),'#6b9e7e');
+  document.getElementById('chart-mood').innerHTML   = spark(r.map(function(l){return l.mood;}).filter(Boolean),'#9e7e6b');
+  document.getElementById('chart-sleep').innerHTML  = spark(r.map(function(l){return l.sleep;}).filter(Boolean),'#6b8a9e');
+}
+
+function checkBP() {
+  var r=appState.logs.slice(-3);
+  var elevated=r.filter(function(l){ return (l.sys&&l.sys>140)||(l.dia&&l.dia>90); }).length;
+  if (elevated>=2) document.getElementById('bp-alert').classList.remove('hidden');
+}
+
+// ── Specialists ──────────────────────────────────────────────────────────────
+function renderSpecialists() {
+  document.getElementById('specialists-list').innerHTML = SPECS.map(function(s){
+    return '<div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">'+
+      '<div class="flex items-start justify-between mb-2">'+
+        '<div>'+
+          '<p class="text-[11px] font-semibold text-[#6b9e7e] uppercase tracking-wide mb-0.5">'+s.type+'</p>'+
+          '<h3 class="serif font-medium text-stone-700 text-base">'+s.name+'</h3>'+
+        '</div>'+
+        '<span class="text-sm font-semibold text-stone-600 bg-stone-50 border border-stone-100 px-3 py-1 rounded-full">&#163;'+s.price+'</span>'+
+      '</div>'+
+      '<p class="text-sm text-stone-500 leading-relaxed mb-3">'+s.desc+'</p>'+
+      '<div class="flex items-center justify-between">'+
+        '<p class="text-xs text-stone-400">Next available: '+s.avail+'</p>'+
+        '<a href="mailto:'+s.email+'?subject=Consultation+enquiry" class="bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors">Book consultation</a>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ── Nav ──────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-pane').forEach(function(el){ el.classList.add('hidden'); });
+  ['timeline','tracking','specialists'].forEach(function(t){
+    var btn=document.getElementById('nav-'+t);
+    if (t===tab) { btn.classList.add('text-[#6b9e7e]'); btn.classList.remove('text-stone-400'); }
+    else { btn.classList.remove('text-[#6b9e7e]'); btn.classList.add('text-stone-400'); }
+  });
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+}
+</script>
+</body>
+</html>
