@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bloom — Hi-fi Redesign</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Nunito', sans-serif; overflow: hidden; }
+
+    @keyframes blobMorph {
+      0%,100% { border-radius: 62% 38% 34% 66% / 58% 36% 64% 42%; }
+      25%      { border-radius: 38% 62% 58% 42% / 46% 62% 38% 54%; }
+      50%      { border-radius: 54% 46% 38% 62% / 38% 66% 34% 62%; }
+      75%      { border-radius: 46% 54% 62% 38% / 62% 38% 62% 38%; }
+    }
+    @keyframes blobFloat {
+      0%,100% { transform: translateY(0px) rotate(0deg); }
+      33%      { transform: translateY(-10px) rotate(1.5deg); }
+      66%      { transform: translateY(-5px) rotate(-1deg); }
+    }
+    @keyframes blink {
+      0%,88%,100% { transform: scaleY(1); }
+      92%          { transform: scaleY(0.08); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ringFill {
+      from { stroke-dasharray: 0 999; }
+    }
+    @keyframes callPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(76,175,125,0.4); }
+      50%      { box-shadow: 0 0 0 14px rgba(76,175,125,0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .blob-float { animation: blobFloat 5s ease-in-out infinite; }
+    .blob-body  { animation: blobMorph 9s ease-in-out infinite; }
+    .eye        { animation: blink 5s ease-in-out infinite; transform-origin: center; }
+    .eye-r      { animation-delay: 0.12s; }
+    .fade-up    { animation: fadeUp 0.35s ease-out both; }
+    .ring-arc   { animation: ringFill 1s ease-out both; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "week": 24,
+  "streakDays": 12,
+  "mood": "happy"
+}/*EDITMODE-END*/;
+
+// ── Palette ────────────────────────────────────────────────────────────────
+const PA = {
+  cocoon: {
+    bg: '#fdf7f0', bgDeep: '#f5ebe0', card: '#ffffff', cardAlt: '#fff4ec',
+    primary: '#c8654a', accent: '#e8956d', light: '#f9ddd0', glow: 'rgba(200,101,74,0.18)',
+    text: '#2d1a10', muted: '#9a7060', tabBg: '#ffffff',
+    blobA: '#f7b896', blobB: '#e07a60', blobC: '#fdd5b8',
+    ring: '#c8654a', dark: false,
+  },
+  bold: {
+    bg: '#1a0c06', bgDeep: '#110804', card: 'rgba(255,255,255,0.07)', cardAlt: 'rgba(255,130,80,0.14)',
+    primary: '#ff6b4a', accent: '#ffaa7a', light: 'rgba(255,107,74,0.18)', glow: 'rgba(255,107,74,0.35)',
+    text: '#fef0e6', muted: 'rgba(254,240,230,0.5)', tabBg: 'rgba(16,8,3,0.92)',
+    blobA: '#ff9a70', blobB: '#ff4a28', blobC: '#ffd4aa',
+    ring: '#ff6b4a', dark: true,
+  },
+};
+
+// ── Baby data ──────────────────────────────────────────────────────────────
+const BABY = {
+  24: {
+    emoji: '🌽', size: 'ear of corn', cm: 30, g: 600,
+    feel: [
+      { icon: '💨', label: 'Braxton Hicks contractions', note: 'Normal warm-up surges' },
+      { icon: '🫀', label: 'Round ligament pain', note: 'Sharp twinges when moving' },
+      { icon: '🔥', label: 'Heartburn after meals', note: 'Try smaller portions' },
+    ],
+    energy: 'You may have a burst of nesting energy this week!',
+    fact: 'Baby can now hear your voice. Try reading or humming — they already recognise you.',
+  },
+};
+
+// ── Reusable primitives ────────────────────────────────────────────────────
+function Card({ t, children, style = {}, onClick }) {
+  return (
+    <div onClick={onClick} style={{
+      background: t.card, borderRadius: 20, padding: '15px 17px',
+      border: `1px solid ${t.dark ? 'rgba(255,255,255,0.09)' : 'rgba(255,220,195,0.55)'}`,
+      boxShadow: t.dark ? '0 4px 20px rgba(0,0,0,0.35)' : '0 2px 14px rgba(200,130,100,0.07)',
+      cursor: onClick ? 'pointer' : 'default', ...style,
+    }}>{children}</div>
+  );
+}
+
+function Label({ t, children }) {
+  return <div style={{ fontSize: 10.5, fontWeight: 800, color: t.muted, letterSpacing: 1.1, textTransform: 'uppercase', marginBottom: 9 }}>{children}</div>;
+}
+
+function Btn({ t, children, onClick, color, style = {} }) {
+  const bg = color || t.primary;
+  return (
+    <button onClick={onClick} style={{
+      width: '100%', padding: '15px', borderRadius: 16, border: 'none', cursor: 'pointer',
+      background: bg, color: '#fff', fontSize: 15, fontWeight: 800,
+      fontFamily: 'Nunito, sans-serif', letterSpacing: 0.2, ...style,
+    }}>{children}</button>
+  );
+}
+
+// ── Blob character ─────────────────────────────────────────────────────────
+function BlobChar({ t, mood = 'happy', size = 168, onClick }) {
+  const [bounce, setBounce] = React.useState(false);
+  const tap = () => { setBounce(true); setTimeout(() => setBounce(false), 500); onClick?.(); };
+
+  // mood → face recipe
+  const faces = {
+    happy:   { eyeRy: 5.5, eyeFill: true, smileType: 'wide', cheeks: true  },
+    calm:    { eyeRy: 4,   eyeFill: true, smileType: 'gentle', cheeks: true },
+    tired:   { eyeRy: 3.2, eyeFill: true, smileType: 'small', cheeks: false },
+    anxious: { eyeRy: 7,   eyeFill: true, smileType: 'flat', cheeks: false  },
+  };
+  const f = faces[mood] || faces.happy;
+  const cx = size / 2, ey = size * 0.40, es = size * 0.145, my = size * 0.59;
+  const pupilR = f.eyeRy * 0.48;
+
+  const smile = () => {
+    if (f.smileType === 'wide')   return <path d={`M${cx-24},${my} Q${cx},${my+22} ${cx+24},${my}`} stroke="#fff" strokeWidth="3.5" fill="none" strokeLinecap="round"/>;
+    if (f.smileType === 'gentle') return <path d={`M${cx-18},${my} Q${cx},${my+14} ${cx+18},${my}`} stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round"/>;
+    if (f.smileType === 'small')  return <path d={`M${cx-12},${my} Q${cx},${my+8} ${cx+12},${my}`} stroke="#fff" strokeWidth="2.8" fill="none" strokeLinecap="round" opacity=".8"/>;
+    return <path d={`M${cx-14},${my+2} L${cx+14},${my+2}`} stroke="#fff" strokeWidth="2.8" strokeLinecap="round" opacity=".7"/>;
+  };
+
+  return (
+    <div className="blob-float" onClick={tap}
+      style={{ width: size, height: size, cursor: 'pointer', position: 'relative', flexShrink: 0,
+        filter: `drop-shadow(0 10px 28px ${t.glow})`,
+        transition: 'transform 0.15s', transform: bounce ? 'scale(0.9) rotate(-6deg)' : 'scale(1)',
+      }}>
+      <div className="blob-body" style={{
+        width: '100%', height: '100%',
+        background: `radial-gradient(ellipse at 38% 32%, ${t.blobC}, ${t.blobA} 48%, ${t.blobB})`,
+        borderRadius: '62% 38% 34% 66% / 58% 36% 64% 42%',
+      }}/>
+      <svg width={size} height={size} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+        {/* left eye */}
+        <ellipse className="eye" cx={cx - es} cy={ey} rx={f.eyeRy * 1.1} ry={f.eyeRy} fill="#fff"/>
+        {f.eyeFill && <circle cx={cx - es + 1.5} cy={ey - 1} r={pupilR} fill={t.blobB} opacity=".9"/>}
+        {/* right eye */}
+        <ellipse className="eye eye-r" cx={cx + es} cy={ey} rx={f.eyeRy * 1.1} ry={f.eyeRy} fill="#fff"/>
+        {f.eyeFill && <circle cx={cx + es + 1.5} cy={ey - 1} r={pupilR} fill={t.blobB} opacity=".9"/>}
+        {/* mouth */}
+        {smile()}
+        {/* cheeks */}
+        {f.cheeks && <>
+          <circle cx={cx - es - 14} cy={ey + 16} r={size * 0.065} fill="#fff" opacity=".22"/>
+          <circle cx={cx + es + 14} cy={ey + 16} r={size * 0.065} fill="#fff" opacity=".22"/>
+        </>}
+      </svg>
+    </div>
+  );
+}
+
+// ── Streak ring ────────────────────────────────────────────────────────────
+function StreakRing({ t, streak = 12, goal = 14, size = 62 }) {
+  const r = size / 2 - 5, c = 2 * Math.PI * r;
+  const pct = Math.min(streak / goal, 1);
+  return (
+    <div style={{ width: size, height: size, position: 'relative', flexShrink: 0 }}>
+      <svg width={size} height={size}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none"
+          stroke={t.dark ? 'rgba(255,255,255,0.1)' : 'rgba(200,160,140,0.2)'} strokeWidth={4}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none"
+          className="ring-arc"
+          stroke={t.ring} strokeWidth={4}
+          strokeDasharray={`${c * pct} ${c}`}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size/2} ${size/2})`}
+          style={{ filter: t.dark ? `drop-shadow(0 0 5px ${t.ring})` : 'none' }}/>
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
+        <span style={{ fontSize: 15, fontWeight: 900, color: t.primary, lineHeight: 1 }}>{streak}</span>
+        <span style={{ fontSize: 7.5, fontWeight: 800, color: t.muted, letterSpacing: 0.8 }}>DAYS</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Tab bar ────────────────────────────────────────────────────────────────
+function TabBar({ t, active, onTab }) {
+  const tabs = [
+    { id: 'timeline',    emoji: '🗓', label: 'Timeline' },
+    { id: 'tracking',   emoji: '📋', label: 'Log' },
+    { id: 'baby',       emoji: '🌸', label: 'Baby' },
+    { id: 'specialists',emoji: '🩺', label: 'Doctors' },
+  ];
+  return (
+    <div style={{
+      display: 'flex', background: t.tabBg,
+      borderTop: `0.5px solid ${t.dark ? 'rgba(255,255,255,0.1)' : 'rgba(200,150,120,0.2)'}`,
+      backdropFilter: t.dark ? 'blur(24px)' : 'none',
+      paddingBottom: 22, paddingTop: 8, flexShrink: 0,
+    }}>
+      {tabs.map(tab => {
+        const isActive = tab.id === active;
+        return (
+          <button key={tab.id} onClick={() => onTab(tab.id)} style={{
+            flex: 1, background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '4px 0',
+          }}>
+            <span style={{ fontSize: 20, lineHeight: 1, filter: isActive ? 'none' : 'grayscale(1)', opacity: isActive ? 1 : 0.45, transition: 'all 0.2s' }}>{tab.emoji}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: isActive ? t.primary : t.muted, fontFamily: 'Nunito', letterSpacing: 0.3, transition: 'color 0.2s' }}>{tab.label}</span>
+            {isActive && <div style={{ width: 16, height: 3, borderRadius: 2, background: t.primary }}/>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── BABY TAB ──────────────────────────────────────────────────────────────
+function BabyTab({ t, week = 24, streak = 12 }) {
+  const [mood, setMood] = React.useState('happy');
+  const [factOpen, setFactOpen] = React.useState(false);
+  const b = BABY[week];
+  const moods = [
+    { id: 'happy', e: '😊', label: 'Great' },
+    { id: 'calm',  e: '😌', label: 'Calm' },
+    { id: 'tired', e: '😴', label: 'Tired' },
+    { id: 'anxious', e: '😟', label: 'Worried' },
+  ];
+
+  return (
+    <div className="fade-up" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: t.bg, display: 'flex', flexDirection: 'column' }}>
+      {/* status bar spacer */}
+      <div style={{ height: 56 }}/>
+
+      {/* header */}
+      <div style={{ padding: '0 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: t.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>Week {week} of 40</div>
+          <div style={{ fontSize: 23, fontWeight: 900, color: t.text, marginTop: 1, lineHeight: 1.2 }}>Hello, Sophia 🌸</div>
+        </div>
+        <StreakRing t={t} streak={streak}/>
+      </div>
+
+      {/* blob hero */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '18px 20px 10px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+          width: 260, height: 260, borderRadius: '50%',
+          background: `radial-gradient(circle, ${t.glow} 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }}/>
+        <BlobChar t={t} mood={mood} size={158} onClick={() => setFactOpen(v => !v)}/>
+        <div style={{ textAlign: 'center', marginTop: 10, position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: t.text }}>About the size of an {b.emoji}</div>
+          <div style={{ fontSize: 12, color: t.muted, marginTop: 1 }}>{b.cm} cm · {b.g}g · tap me!</div>
+        </div>
+      </div>
+
+      {/* fact card */}
+      {factOpen && (
+        <div className="fade-up" style={{ margin: '0 20px 12px', padding: '14px 16px',
+          background: t.cardAlt, borderRadius: 18,
+          border: `1px solid ${t.primary}35`,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: t.primary, marginBottom: 5 }}>✨ This week's fact</div>
+          <div style={{ fontSize: 13.5, color: t.text, lineHeight: 1.55 }}>{b.fact}</div>
+        </div>
+      )}
+
+      {/* how you might feel */}
+      <div style={{ padding: '0 20px 12px' }}>
+        <Card t={t}>
+          <Label t={t}>How you might feel this week</Label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {b.feel.map((f, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: t.dark ? 'rgba(255,255,255,0.07)' : t.bgDeep,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{f.icon}</div>
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>{f.label}</div>
+                  <div style={{ fontSize: 11.5, color: t.muted, marginTop: 1 }}>{f.note}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* mood check-in */}
+      <div style={{ padding: '0 20px 12px' }}>
+        <Card t={t}>
+          <Label t={t}>How are you feeling right now?</Label>
+          <div style={{ display: 'flex', gap: 7 }}>
+            {moods.map(m => {
+              const active = mood === m.id;
+              return (
+                <button key={m.id} onClick={() => setMood(m.id)} style={{
+                  flex: 1, border: `2px solid ${active ? t.primary : 'transparent'}`,
+                  borderRadius: 14, padding: '9px 0', cursor: 'pointer',
+                  background: active ? (t.dark ? `${t.primary}30` : t.light) : (t.dark ? 'rgba(255,255,255,0.06)' : t.bgDeep),
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  transition: 'all 0.18s', transform: active ? 'scale(1.06)' : 'scale(1)',
+                }}>
+                  <span style={{ fontSize: 20 }}>{m.e}</span>
+                  <span style={{ fontSize: 9.5, fontWeight: 800, color: active ? t.primary : t.muted, fontFamily: 'Nunito', letterSpacing: 0.3 }}>{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      {/* streak banner */}
+      <div style={{ padding: '0 20px 20px' }}>
+        <Card t={t} style={{
+          background: t.dark
+            ? `linear-gradient(135deg, rgba(255,107,74,0.22), rgba(255,170,120,0.12))`
+            : `linear-gradient(135deg, #fff9f5, #fdeee4)`,
+          border: `1px solid ${t.primary}30`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 30 }}>🔥</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 900, color: t.text }}>{streak}-day streak!</div>
+              <div style={{ fontSize: 11.5, color: t.muted, marginTop: 2 }}>2 more days to unlock your 2-week badge</div>
+              <div style={{ height: 4, background: t.dark ? 'rgba(255,255,255,0.1)' : 'rgba(200,150,120,0.2)', borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(streak/14)*100}%`, background: t.primary, borderRadius: 2 }}/>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ── TIMELINE TAB ───────────────────────────────────────────────────────────
+function TimelineTab({ t, week = 24 }) {
+  const events = [
+    { w: 20, done: true,  e: '📸', title: 'Anomaly scan', sub: 'All looking great ✓' },
+    { w: 24, done: true,  e: '🩸', title: 'Glucose screening', sub: 'Results normal ✓', current: true },
+    { w: 26, done: false, e: '🧠', title: 'Third trimester begins', sub: "Baby's brain grows rapidly", next: true },
+    { w: 28, done: false, e: '💉', title: 'Whooping cough vaccine', sub: 'Recommended 27–36 weeks' },
+    { w: 32, done: false, e: '🔬', title: 'Growth scan', sub: 'Check baby\'s position & size' },
+    { w: 36, done: false, e: '🧫', title: 'Group B Strep test', sub: 'Simple vaginal swab' },
+    { w: 40, done: false, e: '👶', title: 'Due date', sub: 'Hello, world!', special: true },
+  ];
+
+  return (
+    <div className="fade-up" style={{ flex: 1, overflowY: 'auto', background: t.bg, padding: '0 20px 20px' }}>
+      <div style={{ height: 56 }}/>
+      <div style={{ fontSize: 24, fontWeight: 900, color: t.text }}>Your journey</div>
+      <div style={{ fontSize: 13, color: t.muted, marginTop: 2, marginBottom: 16 }}>Week {week} of 40 · {Math.round((week/40)*100)}% complete</div>
+
+      {/* overall progress */}
+      <div style={{ height: 6, background: t.dark ? 'rgba(255,255,255,0.08)' : 'rgba(200,150,120,0.18)', borderRadius: 3, marginBottom: 24, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${(week/40)*100}%`, background: `linear-gradient(90deg, ${t.primary}, ${t.accent})`, borderRadius: 3 }}/>
+      </div>
+
+      <div style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', left: 19, top: 20, bottom: 20, width: 2,
+          background: t.dark ? 'rgba(255,255,255,0.08)' : 'rgba(200,150,120,0.22)', borderRadius: 1 }}/>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {events.map((ev, i) => (
+            <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 20, flexShrink: 0, zIndex: 1,
+                background: ev.done ? t.primary : ev.next ? t.accent : (t.dark ? 'rgba(255,255,255,0.08)' : t.bgDeep),
+                border: ev.next ? `2px solid ${t.primary}` : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: ev.done ? 16 : 18,
+                boxShadow: ev.next ? `0 0 0 4px ${t.primary}25` : 'none',
+              }}>
+                {ev.done ? '✓' : ev.e}
+              </div>
+              <Card t={t} style={{ flex: 1, padding: '11px 14px', opacity: ev.done ? 0.65 : 1,
+                border: ev.next ? `1.5px solid ${t.primary}45` : undefined,
+                background: ev.special ? (t.dark ? `linear-gradient(135deg,${t.primary}25,${t.accent}18)` : `linear-gradient(135deg,#fff9f5,#fdeee4)`) : t.card,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: ev.next ? t.primary : t.muted, letterSpacing: 0.9 }}>WEEK {ev.w}</span>
+                  {ev.next && <span style={{ fontSize: 10, fontWeight: 800, color: t.primary, background: `${t.primary}18`, padding: '2px 8px', borderRadius: 8 }}>UP NEXT</span>}
+                  {ev.special && <span style={{ fontSize: 10.5, fontWeight: 800, color: t.primary }}>⭐ BIG DAY</span>}
+                </div>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: t.text, marginTop: 3 }}>{ev.title}</div>
+                <div style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>{ev.sub}</div>
+              </Card>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TRACKING TAB ───────────────────────────────────────────────────────────
+function TrackingTab({ t }) {
+  const [bp, setBp] = React.useState({ s: '', d: '' });
+  const [kg, setKg] = React.useState('');
+  const [sleep, setSleep] = React.useState(7);
+  const [syms, setSyms] = React.useState([]);
+  const [saved, setSaved] = React.useState(false);
+  const sym = ['Nausea', 'Headache', 'Swelling', 'Fatigue', 'Back pain'];
+  const tog = s => setSyms(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]);
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2200); };
+
+  const inp = {
+    padding: '11px 13px', borderRadius: 12, fontSize: 15, fontWeight: 700,
+    outline: 'none', fontFamily: 'Nunito, sans-serif',
+    background: t.dark ? 'rgba(255,255,255,0.06)' : '#fdf6ee',
+    border: `1.5px solid ${t.dark ? 'rgba(255,255,255,0.1)' : 'rgba(200,150,120,0.3)'}`,
+    color: t.text, width: '100%',
+  };
+
+  return (
+    <div className="fade-up" style={{ flex: 1, overflowY: 'auto', background: t.bg, padding: '0 20px 20px' }}>
+      <div style={{ height: 56 }}/>
+      <div style={{ fontSize: 24, fontWeight: 900, color: t.text }}>Daily log</div>
+      <div style={{ fontSize: 13, color: t.muted, marginTop: 2, marginBottom: 18 }}>Monday · April 21</div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* blood pressure */}
+        <Card t={t}>
+          <Label t={t}>Blood Pressure</Label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {[['Systolic', bp.s, v => setBp(p=>({...p, s:v})), '120'],
+              ['Diastolic', bp.d, v => setBp(p=>({...p, d:v})), '80']].map(([lbl, val, set, ph]) => (
+              <div key={lbl} style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: t.muted, marginBottom: 5, fontWeight: 700 }}>{lbl}</div>
+                <input style={inp} type="number" placeholder={ph} value={val} onChange={e => set(e.target.value)}/>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* weight + sleep */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Card t={t} style={{ flex: 1, padding: '13px' }}>
+            <Label t={t}>Weight kg</Label>
+            <input style={{...inp, textAlign: 'center', fontSize: 22, fontWeight: 900}} type="number" placeholder="—" value={kg} onChange={e => setKg(e.target.value)}/>
+          </Card>
+          <Card t={t} style={{ flex: 1, padding: '13px' }}>
+            <Label t={t}>Sleep</Label>
+            <div style={{ textAlign: 'center', fontSize: 22, fontWeight: 900, color: t.text }}>{sleep}<span style={{ fontSize: 13, fontWeight: 600, color: t.muted }}>h</span></div>
+            <input type="range" min="3" max="12" value={sleep} onChange={e => setSleep(+e.target.value)}
+              style={{ width: '100%', accentColor: t.primary, marginTop: 6 }}/>
+          </Card>
+        </div>
+
+        {/* symptoms */}
+        <Card t={t}>
+          <Label t={t}>Symptoms today</Label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {sym.map(s => {
+              const on = syms.includes(s);
+              return <button key={s} onClick={() => tog(s)} style={{
+                padding: '7px 13px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                background: on ? t.primary : (t.dark ? 'rgba(255,255,255,0.07)' : t.bgDeep),
+                color: on ? '#fff' : t.text, fontFamily: 'Nunito', fontSize: 12.5, fontWeight: 700,
+                transition: 'all 0.15s',
+              }}>{s}</button>;
+            })}
+          </div>
+        </Card>
+
+        <Btn t={t} onClick={save} color={saved ? '#4caf7d' : t.primary}>
+          {saved ? '✓ Saved to your record' : 'Save today\'s entry'}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── SPECIALISTS TAB ────────────────────────────────────────────────────────
+function SpecialistsTab({ t }) {
+  const [view, setView] = React.useState('list');
+  const [docId, setDocId] = React.useState(null);
+  const [secs, setSecs] = React.useState(0);
+
+  React.useEffect(() => {
+    if (view !== 'call') return;
+    const id = setInterval(() => setSecs(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [view]);
+
+  const docs = [
+    { id: 1, name: 'Dr. Sarah Mitchell', role: 'Midwife & Consultant', rating: 4.9, reviews: 142, wait: '~5 min', spec: 'High-risk pregnancy', avail: true, e: '👩‍⚕️' },
+    { id: 2, name: 'Dr. James Okafor', role: 'Obstetric Specialist', rating: 4.8, reviews: 89, wait: '~12 min', spec: 'Fetal medicine', avail: true, e: '👨‍⚕️' },
+    { id: 3, name: 'Dr. Priya Sharma', role: 'Maternal–Fetal Medicine', rating: 4.9, reviews: 210, wait: '~20 min', spec: 'Nutrition & wellness', avail: false, e: '👩‍⚕️' },
+  ];
+  const doc = docs.find(d => d.id === docId);
+  const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+
+  if (view === 'call') return (
+    <div className="fade-up" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+      background: t.dark ? '#0e0705' : '#1a0d06', padding: '60px 20px 40px' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, fontWeight: 800 }}>CONNECTED</div>
+        <div style={{ fontSize: 16, color: '#4caf7d', fontWeight: 800, marginTop: 4 }}>{fmt(secs)}</div>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 114, height: 114, borderRadius: 57, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`,
+          margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 46,
+          animation: 'callPulse 2.2s ease-in-out infinite',
+        }}>{doc?.e}</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{doc?.name}</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{doc?.role}</div>
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 16, padding: '12px 16px', width: '100%',
+        border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', letterSpacing: 1, fontWeight: 800, marginBottom: 5 }}>SHARED WITH DOCTOR</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+          Week 24 · BP avg 118/76 · Sleep 7h avg · Recent: Back pain, Heartburn · 🔥 12-day streak
+        </div>
+      </div>
+      <button onClick={() => { setView('list'); setSecs(0); }} style={{
+        width: 62, height: 62, borderRadius: 31, background: '#e53935', border: 'none', cursor: 'pointer', fontSize: 22,
+      }}>📵</button>
+    </div>
+  );
+
+  if (view === 'brief') return (
+    <div className="fade-up" style={{ flex: 1, overflowY: 'auto', background: t.bg, padding: '0 20px 20px' }}>
+      <div style={{ height: 56 }}/>
+      <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.primary, fontFamily: 'Nunito', fontWeight: 800, fontSize: 13.5, padding: 0, marginBottom: 14 }}>← Back</button>
+      <div style={{ fontSize: 22, fontWeight: 900, color: t.text }}>Before your call</div>
+      <div style={{ fontSize: 13, color: t.muted, marginTop: 2, marginBottom: 18 }}>This context will be shared with {doc?.name}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 20 }}>
+        {[
+          ['Current week', 'Week 24 of 40'],
+          ['Blood pressure', '118 / 76 mmHg ✓'],
+          ['Weight this week', '+0.4 kg'],
+          ['Mood (avg)', '😊 Mostly good'],
+          ['Symptoms logged', 'Back pain, Heartburn'],
+          ['Sleep', '7h average'],
+          ['Streak', '🔥 12 consecutive days'],
+        ].map(([k, v]) => (
+          <Card t={t} key={k} style={{ padding: '11px 15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: t.muted, fontWeight: 600 }}>{k}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: t.text }}>{v}</span>
+            </div>
+          </Card>
+        ))}
+      </div>
+      <Btn t={t} onClick={() => setView('call')} color="#4caf7d">📞 Begin call</Btn>
+    </div>
+  );
+
+  if (view === 'profile' && doc) return (
+    <div className="fade-up" style={{ flex: 1, overflowY: 'auto', background: t.bg, padding: '0 20px 20px' }}>
+      <div style={{ height: 56 }}/>
+      <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.primary, fontFamily: 'Nunito', fontWeight: 800, fontSize: 13.5, padding: 0, marginBottom: 14 }}>← Specialists</button>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 18 }}>
+        <div style={{ width: 70, height: 70, borderRadius: 35, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, flexShrink: 0 }}>{doc.e}</div>
+        <div>
+          <div style={{ fontSize: 19, fontWeight: 900, color: t.text }}>{doc.name}</div>
+          <div style={{ fontSize: 12.5, color: t.muted, marginTop: 1 }}>{doc.role}</div>
+          <div style={{ fontSize: 13, color: t.primary, fontWeight: 800, marginTop: 3 }}>⭐ {doc.rating} · {doc.reviews} reviews</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 18 }}>
+        <Card t={t}><Label t={t}>Speciality</Label><div style={{ fontSize: 14.5, fontWeight: 700, color: t.text }}>{doc.spec}</div></Card>
+        <Card t={t} style={{ background: t.dark ? `${t.primary}1a` : '#fff8f5', border: `1px solid ${t.primary}30` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div><Label t={t}>Estimated wait</Label><div style={{ fontSize: 20, fontWeight: 900, color: t.primary }}>{doc.wait}</div></div>
+            <div style={{ width: 12, height: 12, borderRadius: 6, background: '#4caf7d', boxShadow: '0 0 0 4px rgba(76,175,125,0.25)' }}/>
+          </div>
+        </Card>
+      </div>
+      <Btn t={t} onClick={() => setView('brief')}>Review context & start →</Btn>
+    </div>
+  );
+
+  return (
+    <div className="fade-up" style={{ flex: 1, overflowY: 'auto', background: t.bg, padding: '0 20px 20px' }}>
+      <div style={{ height: 56 }}/>
+      <div style={{ fontSize: 24, fontWeight: 900, color: t.text }}>Specialists</div>
+      <div style={{ fontSize: 13, color: t.muted, marginTop: 2, marginBottom: 18 }}>UK-based · doctor sees your full context</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+        {docs.map(d => (
+          <Card t={t} key={d.id} onClick={() => { if (!d.avail) return; setDocId(d.id); setView('profile'); }}
+            style={{ opacity: d.avail ? 1 : 0.55, cursor: d.avail ? 'pointer' : 'default' }}>
+            <div style={{ display: 'flex', gap: 13, alignItems: 'center' }}>
+              <div style={{ width: 54, height: 54, borderRadius: 27, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>{d.e}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: t.text }}>{d.name}</div>
+                <div style={{ fontSize: 11.5, color: t.muted, marginTop: 1 }}>{d.role}</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: t.primary, fontWeight: 800 }}>⭐ {d.rating}</span>
+                  <span style={{ fontSize: 12, color: t.muted }}>{d.wait}</span>
+                  <span style={{ fontSize: 10, background: d.avail ? '#e8f5ec' : 'rgba(150,150,150,0.12)', color: d.avail ? '#2e7d52' : t.muted,
+                    padding: '2px 8px', borderRadius: 9, fontWeight: 800 }}>{d.avail ? 'Available' : 'Busy'}</span>
+                </div>
+              </div>
+              {d.avail && <div style={{ color: t.muted, fontSize: 18, fontWeight: 300 }}>›</div>}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── BLOOM APP ──────────────────────────────────────────────────────────────
+function BloomApp({ themeKey = 'cocoon', week = 24, streak = 12 }) {
+  const [tab, setTab] = React.useState('baby');
+  const t = PA[themeKey];
+  const screens = {
+    baby:        <BabyTab t={t} week={week} streak={streak}/>,
+    timeline:    <TimelineTab t={t} week={week}/>,
+    tracking:    <TrackingTab t={t}/>,
+    specialists: <SpecialistsTab t={t}/>,
+  };
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: t.bg, fontFamily: 'Nunito, sans-serif', overflow: 'hidden' }}>
+      {screens[tab]}
+      <TabBar t={t} active={tab} onTab={setTab}/>
+    </div>
+  );
+}
+
+// ── TWEAKS ─────────────────────────────────────────────────────────────────
+function TweaksPanel({ vals, onChange, visible }) {
+  if (!visible) return null;
+  return (
+    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999, background: '#fff', borderRadius: 18,
+      boxShadow: '0 8px 40px rgba(0,0,0,0.18)', padding: '18px 20px', width: 220, fontFamily: 'Nunito' }}>
+      <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14, color: '#2d1a10' }}>Tweaks</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#9a7060', marginBottom: 6 }}>WEEK</div>
+      <input type="range" min="4" max="40" value={vals.week} onChange={e => onChange('week', +e.target.value)} style={{ width: '100%', accentColor: '#c8654a', marginBottom: 12 }}/>
+      <div style={{ fontSize: 11, color: '#9a7060', textAlign: 'right', marginTop: -10, marginBottom: 12 }}>Week {vals.week}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#9a7060', marginBottom: 6 }}>STREAK</div>
+      <input type="range" min="1" max="30" value={vals.streakDays} onChange={e => onChange('streakDays', +e.target.value)} style={{ width: '100%', accentColor: '#c8654a' }}/>
+      <div style={{ fontSize: 11, color: '#9a7060', textAlign: 'right', marginTop: 2 }}>{vals.streakDays} days</div>
+    </div>
+  );
+}
+
+// ── ROOT ───────────────────────────────────────────────────────────────────
+function Root() {
+  const [tweakVals, setTweakVals] = React.useState(TWEAK_DEFAULTS);
+  const [tweaksOn, setTweaksOn] = React.useState(false);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === '__activate_edit_mode')   setTweaksOn(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOn(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const setVal = (k, v) => {
+    const next = { ...tweakVals, [k]: v };
+    setTweakVals(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+
+  const week = tweakVals.week ?? 24;
+  const streak = tweakVals.streakDays ?? 12;
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection id="cocoon" title="A — Cocoon" subtitle="Warm, soft, nurturing · Light mode">
+          <DCArtboard id="baby-c" label="🌸 Baby (hero)" width={402} height={874}>
+            <IOSDevice dark={false} width={402} height={874}>
+              <BloomApp themeKey="cocoon" week={week} streak={streak}/>
+            </IOSDevice>
+          </DCArtboard>
+        </DCSection>
+        <DCSection id="bold" title="B — Bloom Bold" subtitle="Dark, expressive, electric">
+          <DCArtboard id="baby-b" label="🌸 Baby (hero)" width={402} height={874}>
+            <IOSDevice dark={true} width={402} height={874}>
+              <BloomApp themeKey="bold" week={week} streak={streak}/>
+            </IOSDevice>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+      <TweaksPanel vals={tweakVals} onChange={setVal} visible={tweaksOn}/>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
+</script>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+  <rect width="80" height="56" fill="#fdf7f0"/>
+  <ellipse cx="40" cy="26" rx="18" ry="16" fill="#f4a882"/>
+  <circle cx="34" cy="23" r="2.5" fill="#fff"/>
+  <circle cx="46" cy="23" r="2.5" fill="#fff"/>
+  <path d="M34 31 Q40 36 46 31" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="40" y="50" text-anchor="middle" font-size="6" fill="#c8654a" font-family="sans-serif" font-weight="bold">Bloom</text>
+</svg>
+</template>
+</body>
+</html>
