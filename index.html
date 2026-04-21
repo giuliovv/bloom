@@ -13,6 +13,15 @@
     @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     .fade-in { animation: fadeIn 0.3s ease; }
     .modal-bg { background: rgba(0,0,0,0.45); backdrop-filter: blur(3px); }
+    @keyframes babybounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+    @keyframes babypulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.04);} }
+    @keyframes sparkle { 0%,100%{opacity:1;transform:scale(1) rotate(0deg);} 50%{opacity:.6;transform:scale(1.3) rotate(20deg);} }
+    .baby-happy { animation: babybounce 2s ease-in-out infinite; }
+    .baby-good  { animation: babypulse 3s ease-in-out infinite; }
+    .baby-okay  { animation: babypulse 4s ease-in-out infinite; }
+    .sparkle-star { animation: sparkle 1.5s ease-in-out infinite; display:inline-block; }
+    .score-bar { transition: width 0.8s cubic-bezier(.22,.61,.36,1); }
+    .nudge-card { animation: fadeIn 0.4s ease; }
   </style>
 </head>
 <body class="min-h-screen pb-20">
@@ -136,6 +145,45 @@
     </div>
   </div>
 
+  <!-- BABY TAB -->
+  <div id="tab-baby" class="tab-pane hidden px-4 py-4">
+
+    <!-- Avatar card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 mb-4 text-center">
+      <div id="baby-sparkles" class="text-2xl mb-1 h-8"></div>
+      <div id="baby-avatar" class="mb-3" style="min-height:120px"></div>
+      <p id="baby-status-label" class="serif text-xl text-[#4a7c5e] mb-1"></p>
+      <p id="baby-message" class="text-sm text-stone-500 max-w-xs mx-auto leading-relaxed"></p>
+    </div>
+
+    <!-- Score -->
+    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Wellbeing score</span>
+        <div class="flex items-center gap-2">
+          <span id="baby-streak" class="text-xs text-amber-500 font-semibold"></span>
+          <span id="baby-score" class="text-lg font-bold text-[#6b9e7e]"></span>
+        </div>
+      </div>
+      <div class="bg-stone-100 rounded-full h-3 overflow-hidden mb-4">
+        <div id="baby-score-bar" class="score-bar h-full rounded-full bg-[#6b9e7e]" style="width:0%"></div>
+      </div>
+      <div id="baby-nudges" class="space-y-2"></div>
+    </div>
+
+    <!-- Weekly doctor report -->
+    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-base">&#129658;</span>
+        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Weekly report for your doctor</h3>
+      </div>
+      <div id="baby-report" class="text-sm text-stone-600 leading-relaxed mb-4 whitespace-pre-line bg-stone-50 rounded-xl p-4 border border-stone-100"></div>
+      <button onclick="copyReport()" class="w-full bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white rounded-xl py-2.5 text-sm font-medium transition-colors">Copy &amp; share with doctor</button>
+      <div id="copy-ok" class="hidden text-center text-[#6b9e7e] text-sm mt-2 font-medium">&#10003; Copied to clipboard</div>
+    </div>
+
+  </div>
+
   <!-- SPECIALISTS -->
   <div id="tab-specialists" class="tab-pane hidden px-4 py-4">
     <p class="text-stone-500 text-sm mb-5">UK-based specialists who support you through pregnancy and beyond.</p>
@@ -153,6 +201,10 @@
   <button onclick="switchTab('tracking')" id="nav-tracking" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
     <span class="text-xs font-medium">Tracking</span>
+  </button>
+  <button onclick="switchTab('baby')" id="nav-baby" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="14" rx="7" ry="8"/><path d="M12 6 Q16 1 15 -1" stroke-linecap="round"/><path d="M12 6 Q8 1 9 -1" stroke-linecap="round"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/><path d="M9.5 17 Q12 19.5 14.5 17" stroke-linecap="round" fill="none"/></svg>
+    <span class="text-xs font-medium">Baby</span>
   </button>
   <button onclick="switchTab('specialists')" id="nav-specialists" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -265,6 +317,7 @@ function boot() {
   renderTimeline();
   renderSpecialists();
   renderCharts();
+  renderBaby();
   checkBP();
   document.getElementById('t-mood').oninput = function() { document.getElementById('t-mood-val').textContent = this.value; };
 }
@@ -339,7 +392,7 @@ function saveLog() {
   document.querySelectorAll('.sym-chip').forEach(function(c){ c.className='sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500'; });
   var ok=document.getElementById('save-ok');
   ok.classList.remove('hidden'); setTimeout(function(){ ok.classList.add('hidden'); },2000);
-  renderCharts(); checkBP();
+  renderCharts(); checkBP(); renderBaby();
 }
 
 function renderCharts() {
@@ -357,6 +410,200 @@ function checkBP() {
   var r=appState.logs.slice(-3);
   var elevated=r.filter(function(l){ return (l.sys&&l.sys>140)||(l.dia&&l.dia>90); }).length;
   if (elevated>=2) document.getElementById('bp-alert').classList.remove('hidden');
+}
+
+// ── Baby ─────────────────────────────────────────────────────────────────────
+function calcBabyScore() {
+  var score = 0;
+  var nudges = [];
+  var logs = appState.logs;
+  var recent = logs.slice(-7);
+
+  // Logged today?
+  var todayStr = new Date().toDateString();
+  var loggedToday = logs.some(function(l){ return new Date(l.date).toDateString() === todayStr; });
+  if (loggedToday) {
+    score += 25;
+  } else {
+    nudges.push({icon:'⚡', text:"Log today's data to boost your baby's energy!"});
+  }
+
+  // Streak
+  var streak = 0;
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var ds = d.toDateString();
+    if (logs.some(function(l){ return new Date(l.date).toDateString() === ds; })) { streak++; }
+    else break;
+  }
+  if (streak >= 3) score += 10;
+  if (streak >= 7) score += 10;
+
+  // BP
+  var bpLogs = recent.filter(function(l){ return l.sys && l.dia; });
+  if (bpLogs.length > 0) {
+    var avgSys = bpLogs.reduce(function(a,l){return a+l.sys;},0) / bpLogs.length;
+    var avgDia = bpLogs.reduce(function(a,l){return a+l.dia;},0) / bpLogs.length;
+    if (avgSys <= 130 && avgDia <= 85) { score += 20; }
+    else if (avgSys > 140 || avgDia > 90) { score += 5; nudges.push({icon:'🩺', text:"BP has been elevated — worth mentioning to your doctor"}); }
+    else { score += 12; }
+  } else {
+    nudges.push({icon:'💓', text:"Log your blood pressure to track heart health"});
+  }
+
+  // Sleep
+  var sleepLogs = recent.filter(function(l){ return l.sleep; });
+  if (sleepLogs.length > 0) {
+    var avgSleep = sleepLogs.reduce(function(a,l){return a+l.sleep;},0) / sleepLogs.length;
+    if (avgSleep >= 7) { score += 20; }
+    else if (avgSleep >= 6) { score += 12; nudges.push({icon:'😴', text:"Sleep is below 7 hrs — try a pregnancy pillow for better rest"}); }
+    else { score += 5; nudges.push({icon:'😴', text:"Low sleep this week — rest is crucial right now"}); }
+  } else { score += 10; }
+
+  // Mood
+  var moodLogs = recent.filter(function(l){ return l.mood; });
+  if (moodLogs.length > 0) {
+    var avgMood = moodLogs.reduce(function(a,l){return a+l.mood;},0) / moodLogs.length;
+    if (avgMood >= 3.5) { score += 15; }
+    else if (avgMood >= 2.5) { score += 8; nudges.push({icon:'🌸', text:"Mood's been lower — be extra gentle with yourself"}); }
+    else { score += 2; nudges.push({icon:'💚', text:"Mood has been low — consider reaching out to your perinatal team"}); }
+  } else { score += 8; }
+
+  return { score: Math.min(100, score), nudges: nudges, streak: streak };
+}
+
+function getBabyAvatarSVG(state, week) {
+  var bodyColor = state==='happy' ? '#6b9e7e' : state==='good' ? '#7fb08e' : state==='okay' ? '#9db8a8' : '#b8a898';
+  var cheek = (state==='happy'||state==='good') ? '<circle cx="37" cy="57" r="6" fill="#ff9999" opacity="0.45"/><circle cx="63" cy="57" r="6" fill="#ff9999" opacity="0.45"/>' : '';
+  var eyes = state==='needs-love'
+    ? '<line x1="39" y1="48" x2="44" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="44" y1="48" x2="39" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="56" y1="48" x2="61" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="61" y1="48" x2="56" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>'
+    : '<circle cx="42" cy="50" r="3.5" fill="#fff"/><circle cx="58" cy="50" r="3.5" fill="#fff"/><circle cx="43.2" cy="50.5" r="1.8" fill="#2d3748"/><circle cx="59.2" cy="50.5" r="1.8" fill="#2d3748"/>';
+  var mouth = state==='happy' ? '<path d="M 43 61 Q 50 68 57 61" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
+            : state==='good'  ? '<path d="M 43 62 Q 50 67 57 62" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
+            : state==='okay'  ? '<line x1="44" y1="63" x2="56" y2="63" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>'
+            :                   '<path d="M 43 65 Q 50 60 57 65" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+  var sprout1 = week > 8  ? '<path d="M50 34 Q62 22 59 10" stroke="#6b9e7e" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="59" cy="9" rx="5" ry="7" fill="#6b9e7e" transform="rotate(20,59,9)"/>' : '';
+  var sprout2 = week > 20 ? '<path d="M50 34 Q38 22 41 10" stroke="#6b9e7e" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="41" cy="9" rx="5" ry="7" fill="#6b9e7e" transform="rotate(-20,41,9)"/>' : '';
+  var zzz = state==='needs-love' ? '<text x="66" y="38" font-size="13" fill="#b8a898" opacity="0.9">z</text><text x="74" y="28" font-size="10" fill="#b8a898" opacity="0.7">z</text>' : '';
+  return '<svg viewBox="0 0 100 105" width="130" height="136" style="display:block;margin:auto">'
+    + sprout1 + sprout2
+    + '<ellipse cx="50" cy="66" rx="28" ry="31" fill="' + bodyColor + '"/>'
+    + cheek + eyes + mouth
+    + '<path d="M22 66 Q17 54 26 49" stroke="' + bodyColor + '" stroke-width="8" fill="none" stroke-linecap="round"/>'
+    + '<path d="M78 66 Q83 54 74 49" stroke="' + bodyColor + '" stroke-width="8" fill="none" stroke-linecap="round"/>'
+    + zzz
+    + '</svg>';
+}
+
+function renderBaby() {
+  var res = calcBabyScore();
+  var score = res.score;
+  var state = score >= 75 ? 'happy' : score >= 50 ? 'good' : score >= 30 ? 'okay' : 'needs-love';
+  var labels = { happy:'Thriving', good:'Doing well', okay:'Needs more data', 'needs-love':'Needs attention' };
+  var messages = {
+    happy: 'Your baby is happy and glowing — your consistent tracking is paying off! Keep it up.',
+    good: 'Things are looking good. A few more logs and your baby will be glowing!',
+    okay: 'Log today to help your baby grow stronger. Every entry counts.',
+    'needs-love': 'Your baby misses you! Log your data and check the nudges below.'
+  };
+  var sparkles = { happy:'✨ ✨ ✨', good:'🌿 ✨', okay:'🌱', 'needs-love':'' };
+  var animClass = { happy:'baby-happy', good:'baby-good', okay:'baby-okay', 'needs-love':'baby-okay' };
+
+  document.getElementById('baby-sparkles').innerHTML = '<span class="sparkle-star">'+sparkles[state]+'</span>';
+  document.getElementById('baby-avatar').innerHTML = '<div class="' + animClass[state] + '">' + getBabyAvatarSVG(state, appState.currentWeek) + '</div>';
+  document.getElementById('baby-status-label').textContent = labels[state];
+  document.getElementById('baby-message').textContent = messages[state];
+  document.getElementById('baby-score').textContent = score + '/100';
+
+  var streakEl = document.getElementById('baby-streak');
+  if (res.streak >= 2) {
+    streakEl.textContent = '🔥 ' + res.streak + '-day streak';
+  } else {
+    streakEl.textContent = '';
+  }
+
+  setTimeout(function(){
+    document.getElementById('baby-score-bar').style.width = score + '%';
+    var bar = document.getElementById('baby-score-bar');
+    bar.style.background = score >= 75 ? '#6b9e7e' : score >= 50 ? '#9eb86b' : score >= 30 ? '#e0b85c' : '#e07c5c';
+  }, 50);
+
+  var nudgesEl = document.getElementById('baby-nudges');
+  if (res.nudges.length === 0) {
+    nudgesEl.innerHTML = '<p class="text-xs text-[#6b9e7e] font-medium text-center py-1">All green — great work! &#10003;</p>';
+  } else {
+    nudgesEl.innerHTML = res.nudges.map(function(n){
+      return '<div class="nudge-card flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">'
+        + '<span class="text-base mt-0.5">'+n.icon+'</span>'
+        + '<p class="text-sm text-amber-800 leading-snug">'+n.text+'</p>'
+        + '</div>';
+    }).join('');
+  }
+
+  document.getElementById('baby-report').textContent = generateReport();
+}
+
+function generateReport() {
+  var w = appState.currentWeek;
+  var logs = appState.logs.slice(-7);
+  if (logs.length === 0) return 'No entries logged this week yet.\nStart tracking to generate your report.';
+
+  var lines = ['Bloom — Week ' + w + ' summary for ' + appState.name + ':'];
+
+  var bpLogs = logs.filter(function(l){ return l.sys && l.dia; });
+  if (bpLogs.length > 0) {
+    var avgSys = Math.round(bpLogs.reduce(function(a,l){return a+l.sys;},0)/bpLogs.length);
+    var avgDia = Math.round(bpLogs.reduce(function(a,l){return a+l.dia;},0)/bpLogs.length);
+    var bpNote = (avgSys<=130&&avgDia<=85) ? 'within normal range' : (avgSys>140||avgDia>90) ? 'ELEVATED — please review' : 'slightly raised';
+    lines.push('• Blood pressure: avg ' + avgSys + '/' + avgDia + ' mmHg (' + bpNote + ')');
+  }
+
+  var wLogs = logs.filter(function(l){return l.weight;});
+  if (wLogs.length > 1) {
+    var wFirst = wLogs[0].weight, wLast = wLogs[wLogs.length-1].weight;
+    var diff = (wLast - wFirst).toFixed(1);
+    lines.push('• Weight: ' + wLast + ' kg (' + (diff>0?'+':'') + diff + ' kg this week)');
+  } else if (wLogs.length===1) {
+    lines.push('• Weight: ' + wLogs[0].weight + ' kg');
+  }
+
+  var sLogs = logs.filter(function(l){return l.sleep;});
+  if (sLogs.length > 0) {
+    var avgSleep = (sLogs.reduce(function(a,l){return a+l.sleep;},0)/sLogs.length).toFixed(1);
+    lines.push('• Sleep: avg ' + avgSleep + ' hrs/night');
+  }
+
+  var mLogs = logs.filter(function(l){return l.mood;});
+  if (mLogs.length > 0) {
+    var avgMood = (mLogs.reduce(function(a,l){return a+l.mood;},0)/mLogs.length).toFixed(1);
+    var mLabel = avgMood>=4?'good':avgMood>=3?'moderate':'low';
+    lines.push('• Mood: avg ' + avgMood + '/5 (' + mLabel + ')');
+  }
+
+  var allSyms = [];
+  logs.forEach(function(l){ if(l.symptoms) l.symptoms.forEach(function(s){ if(allSyms.indexOf(s)<0) allSyms.push(s); }); });
+  if (allSyms.length > 0) lines.push('• Symptoms reported: ' + allSyms.join(', '));
+
+  lines.push('• Entries logged: ' + logs.length + ' this week');
+  return lines.join('\n');
+}
+
+function copyReport() {
+  var text = document.getElementById('baby-report').textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){
+      var ok = document.getElementById('copy-ok');
+      ok.classList.remove('hidden');
+      setTimeout(function(){ ok.classList.add('hidden'); }, 2500);
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    var ok = document.getElementById('copy-ok');
+    ok.classList.remove('hidden');
+    setTimeout(function(){ ok.classList.add('hidden'); }, 2500);
+  }
 }
 
 // ── Specialists ──────────────────────────────────────────────────────────────
@@ -380,10 +627,13 @@ function renderSpecialists() {
 }
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
+var ALL_TABS = ['timeline','tracking','baby','specialists'];
+
 function switchTab(tab) {
   document.querySelectorAll('.tab-pane').forEach(function(el){ el.classList.add('hidden'); });
-  ['timeline','tracking','specialists'].forEach(function(t){
+  ALL_TABS.forEach(function(t){
     var btn=document.getElementById('nav-'+t);
+    if (!btn) return;
     if (t===tab) { btn.classList.add('text-[#6b9e7e]'); btn.classList.remove('text-stone-400'); }
     else { btn.classList.remove('text-[#6b9e7e]'); btn.classList.add('text-stone-400'); }
   });
