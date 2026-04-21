@@ -2,310 +2,973 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bloom — Pregnancy Companion</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Bloom</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; background: #f9f8f5; color: #2d3748; }
-    .serif { font-family: 'Lora', serif; }
-    input[type=range] { accent-color: #6b9e7e; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-    .fade-in { animation: fadeIn 0.3s ease; }
-    .modal-bg { background: rgba(0,0,0,0.45); backdrop-filter: blur(3px); }
-    @keyframes babybounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
-    @keyframes babypulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.04);} }
-    @keyframes sparkle { 0%,100%{opacity:1;transform:scale(1) rotate(0deg);} 50%{opacity:.6;transform:scale(1.3) rotate(20deg);} }
-    .baby-happy { animation: babybounce 2s ease-in-out infinite; }
-    .baby-good  { animation: babypulse 3s ease-in-out infinite; }
-    .baby-okay  { animation: babypulse 4s ease-in-out infinite; }
-    .sparkle-star { animation: sparkle 1.5s ease-in-out infinite; display:inline-block; }
-    .score-bar { transition: width 0.8s cubic-bezier(.22,.61,.36,1); }
-    .nudge-card { animation: fadeIn 0.4s ease; }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; }
+    body { font-family:'Nunito',sans-serif; background:#1a0c06; color:#fef0e6; -webkit-tap-highlight-color:transparent; }
+    ::-webkit-scrollbar { display:none; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
+
+    @keyframes blobMorph {
+      0%,100%{ border-radius:62% 38% 46% 54%/60% 44% 56% 40%; }
+      20%    { border-radius:44% 56% 38% 62%/54% 38% 62% 46%; }
+      40%    { border-radius:56% 44% 62% 38%/38% 62% 38% 62%; }
+      60%    { border-radius:38% 62% 54% 46%/62% 46% 54% 38%; }
+      80%    { border-radius:54% 46% 44% 56%/44% 56% 44% 56%; }
+    }
+    @keyframes blobFloat {
+      0%,100%{ transform:translateY(0) rotate(0deg); }
+      33%    { transform:translateY(-11px) rotate(1.8deg); }
+      66%    { transform:translateY(-5px) rotate(-1.2deg); }
+    }
+    @keyframes blink {
+      0%,86%,100%{ transform:scaleY(1); }
+      90%        { transform:scaleY(0.06); }
+    }
+    @keyframes glowPulse {
+      0%,100%{ opacity:.6; }
+      50%    { opacity:1; }
+    }
+    @keyframes kickPop {
+      0%  { transform:scale(1); }
+      30% { transform:scale(1.14); }
+      60% { transform:scale(0.96); }
+      100%{ transform:scale(1); }
+    }
+    @keyframes callRing {
+      0%,100%{ box-shadow:0 0 0 0 rgba(76,175,125,.5); }
+      50%    { box-shadow:0 0 0 16px rgba(76,175,125,0); }
+    }
+    @keyframes slideUp {
+      from{ opacity:0; transform:translateY(14px); }
+      to  { opacity:1; transform:translateY(0); }
+    }
+    @keyframes screenIn {
+      from{ opacity:0; transform:translateY(10px); }
+      to  { opacity:1; transform:translateY(0); }
+    }
+
+    .blob-body  { animation:blobMorph 10s ease-in-out infinite; }
+    .blob-float { animation:blobFloat 5.5s ease-in-out infinite; }
+    .eye-l      { animation:blink 5s ease-in-out infinite; transform-origin:center; }
+    .eye-r      { animation:blink 5s ease-in-out .14s infinite; transform-origin:center; }
+    .glow-pulse { animation:glowPulse 3s ease-in-out infinite; }
+    .kick-pop   { animation:kickPop .35s ease-out; }
+    .slide-up   { animation:slideUp .3s ease-out both; }
+    .screen-in  { animation:screenIn .28s cubic-bezier(.2,.8,.3,1) both; }
+
+    #app { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+    .screen { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:none; flex-direction:column; }
+    .screen.active { display:flex; }
+
+    .card {
+      background:rgba(255,255,255,.07);
+      border-radius:20px;
+      padding:14px 16px;
+      border:1px solid rgba(255,255,255,.09);
+    }
+    .card-glow {
+      background:rgba(255,107,74,.13);
+      border-color:rgba(255,107,74,.25);
+    }
+    .lbl {
+      font-size:10px; font-weight:800; color:rgba(254,240,230,.48);
+      letter-spacing:1.2px; text-transform:uppercase; margin-bottom:10px;
+    }
+    .inp {
+      padding:10px 12px; border-radius:11px; font-size:14px; font-weight:700;
+      outline:none; font-family:'Nunito',sans-serif;
+      background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.09);
+      color:#fef0e6; width:100%;
+    }
+    .inp::placeholder { color:rgba(254,240,230,.3); }
+
+    .btn-primary {
+      width:100%; padding:15px; border-radius:16px; border:none; cursor:pointer;
+      background:#ff6b4a; color:#fff; font-size:15px; font-weight:800;
+      font-family:'Nunito',sans-serif; letter-spacing:.2px; transition:background .2s;
+    }
+    .btn-primary:active { opacity:.85; }
+
+    #tab-bar {
+      flex-shrink:0; display:flex;
+      background:rgba(14,7,3,.92);
+      border-top:.5px solid rgba(255,255,255,.09);
+      backdrop-filter:blur(24px);
+      padding:8px 0 env(safe-area-inset-bottom,16px);
+    }
+    .tab-btn {
+      flex:1; background:none; border:none; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:2px; padding:4px 0;
+      font-family:'Nunito',sans-serif;
+    }
+    .tab-btn .tab-e  { font-size:20px; line-height:1; transition:all .2s; }
+    .tab-btn .tab-lbl{ font-size:9.5px; font-weight:800; letter-spacing:.4px; transition:color .2s; }
+    .tab-btn .tab-dot{ width:18px; height:3px; border-radius:2px; background:#ff6b4a; box-shadow:0 0 6px #ff6b4a; margin-top:1px; }
+
+    /* Onboarding */
+    #onboarding {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(0,0,0,.75); backdrop-filter:blur(12px);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    #onboarding.hidden { display:none; }
+    .ob-box {
+      background:#2a1810; border-radius:24px; padding:28px 24px; width:100%;
+      max-width:360px; border:1px solid rgba(255,107,74,.25);
+      box-shadow:0 24px 60px rgba(0,0,0,.6);
+      animation:slideUp .3s ease-out;
+    }
+    .ob-title { font-size:24px; font-weight:900; color:#fef0e6; margin-bottom:4px; }
+    .ob-sub   { font-size:13px; color:rgba(254,240,230,.48); margin-bottom:20px; }
+    .ob-label { font-size:11px; font-weight:800; color:rgba(254,240,230,.6); margin-bottom:6px; display:block; }
+    .ob-input {
+      width:100%; padding:12px 14px; border-radius:12px; font-size:15px; font-weight:700;
+      outline:none; font-family:'Nunito'; background:rgba(255,255,255,.08);
+      border:1.5px solid rgba(255,255,255,.12); color:#fef0e6; margin-bottom:14px;
+    }
+    .ob-input::placeholder { color:rgba(254,240,230,.3); }
   </style>
 </head>
-<body class="min-h-screen pb-20">
+<body>
 
-<!-- ONBOARDING MODAL -->
-<div id="onboarding" class="fixed inset-0 z-50 modal-bg flex items-center justify-center p-4 hidden">
-  <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full fade-in">
-    <h1 class="serif text-2xl text-[#4a7c5e] mb-1">Welcome to Bloom</h1>
-    <p class="text-stone-500 text-sm mb-6">Your gentle guide through every week of pregnancy.</p>
-    <div class="mb-4">
-      <label class="block text-xs font-medium text-stone-600 mb-1">Your first name</label>
-      <input id="ob-name" type="text" placeholder="e.g. Sarah" class="w-full border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6b9e7e] text-stone-700">
-    </div>
-    <div class="mb-6">
-      <label class="block text-xs font-medium text-stone-600 mb-1">Current week of pregnancy</label>
-      <div class="flex items-center gap-3">
-        <input id="ob-week" type="number" min="1" max="40" placeholder="e.g. 12" class="w-full border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6b9e7e] text-stone-700">
-        <span class="text-stone-400 text-sm whitespace-nowrap">/ 40</span>
-      </div>
-    </div>
-    <button onclick="submitOnboarding()" class="w-full bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white rounded-xl py-3 font-medium transition-colors">Begin my journey</button>
+<!-- ONBOARDING -->
+<div id="onboarding" class="hidden">
+  <div class="ob-box">
+    <div class="ob-title">Welcome to Bloom 🌸</div>
+    <div class="ob-sub">Your companion through every week of pregnancy.</div>
+    <label class="ob-label">Your first name</label>
+    <input id="ob-name" class="ob-input" type="text" placeholder="e.g. Sophia">
+    <label class="ob-label">Current week of pregnancy</label>
+    <input id="ob-week" class="ob-input" type="number" min="1" max="40" placeholder="e.g. 12">
+    <button class="btn-primary" onclick="submitOnboarding()" style="margin-top:4px">Begin my journey →</button>
   </div>
 </div>
 
-<!-- BP ALERT -->
-<div id="bp-alert" class="hidden fixed top-0 left-0 right-0 z-40 bg-red-50 border-b border-red-200 px-4 py-3 flex items-start gap-3">
-  <span class="text-red-500 mt-0.5">&#9888;</span>
-  <p class="text-red-700 text-sm flex-1">Your blood pressure has been elevated on two or more recent readings — consider speaking to your midwife.</p>
-  <button onclick="document.getElementById('bp-alert').classList.add('hidden')" class="text-red-400 hover:text-red-600 text-xl leading-none">&#215;</button>
+<!-- APP -->
+<div id="app">
+
+  <!-- BABY SCREEN -->
+  <div id="screen-baby" class="screen active">
+    <div id="baby-scroll" class="screen-in" style="padding:0 0 24px;flex:1;overflow-y:auto">
+      <div style="height:58px"></div>
+
+      <!-- Header -->
+      <div style="padding:0 20px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div id="baby-week-lbl" style="font-size:10.5px;font-weight:800;color:rgba(254,240,230,.48);letter-spacing:1.3px;text-transform:uppercase"></div>
+          <div id="baby-greeting" style="font-size:22px;font-weight:900;color:#fef0e6;margin-top:2px;line-height:1.2"></div>
+        </div>
+        <div id="streak-ring"></div>
+      </div>
+
+      <!-- Trimester bars -->
+      <div style="padding:10px 20px 0;display:flex;gap:6px;align-items:center">
+        <div id="tri-bar-1" style="height:4px;flex:1;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.08)"><div id="tri-fill-1" style="height:100%;transition:width .5s ease"></div></div>
+        <span id="tri-lbl-1" style="font-size:9px;font-weight:800">T1</span>
+        <div id="tri-bar-2" style="height:4px;flex:1;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.08)"><div id="tri-fill-2" style="height:100%;transition:width .5s ease"></div></div>
+        <span id="tri-lbl-2" style="font-size:9px;font-weight:800">T2</span>
+        <div id="tri-bar-3" style="height:4px;flex:1;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.08)"><div id="tri-fill-3" style="height:100%;transition:width .5s ease"></div></div>
+        <span id="tri-lbl-3" style="font-size:9px;font-weight:800">T3</span>
+      </div>
+
+      <!-- Blob hero -->
+      <div style="display:flex;flex-direction:column;align-items:center;padding:18px 20px 6px;position:relative">
+        <div id="blob-wrap"></div>
+        <div style="text-align:center;margin-top:8px">
+          <div id="blob-size-label" style="font-size:15px;font-weight:800;color:#fef0e6"></div>
+          <div id="blob-size-sub" style="font-size:11.5px;color:rgba(254,240,230,.48);margin-top:1px"></div>
+        </div>
+      </div>
+
+      <!-- Fact reveal -->
+      <div id="fact-card" style="margin:0 20px 12px;display:none" class="slide-up">
+        <div style="padding:13px 15px;background:rgba(255,107,74,.14);border-radius:18px;border:1px solid rgba(255,107,74,.3)">
+          <div style="font-size:11px;font-weight:800;color:#ff6b4a;margin-bottom:5px;letter-spacing:.5px">✨ THIS WEEK'S FACT</div>
+          <div id="fact-text" style="font-size:13.5px;color:#fef0e6;line-height:1.55"></div>
+        </div>
+      </div>
+
+      <!-- How you might feel -->
+      <div style="padding:0 20px 12px">
+        <div class="card">
+          <div class="lbl">How you might feel</div>
+          <div id="feel-list" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+      <!-- Mood + Energy -->
+      <div style="padding:0 20px 12px;display:flex;gap:10px">
+        <div class="card" style="flex:1.6">
+          <div class="lbl">Mood now</div>
+          <div id="mood-btns" style="display:flex;gap:6px"></div>
+        </div>
+        <div class="card" style="flex:1">
+          <div class="lbl">Energy</div>
+          <div id="energy-bars" style="display:flex;flex-direction:column;gap:5px"></div>
+          <div id="energy-lbl" style="font-size:10px;color:rgba(254,240,230,.48);margin-top:6px;text-align:center;font-weight:700"></div>
+        </div>
+      </div>
+
+      <!-- Kick counter -->
+      <div style="padding:0 20px 12px">
+        <div class="card card-glow" style="padding:0;overflow:hidden">
+          <button id="kick-btn" onclick="addKick()" style="width:100%;background:none;border:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;gap:14px;font-family:Nunito,sans-serif">
+            <div style="width:52px;height:52px;border-radius:16px;background:rgba(255,107,74,.18);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;border:1.5px solid rgba(255,107,74,.35)">🦶</div>
+            <div style="flex:1;text-align:left">
+              <div style="font-size:13px;font-weight:800;color:#fef0e6">Count kicks</div>
+              <div style="font-size:11.5px;color:rgba(254,240,230,.48);margin-top:1px">Tap each time you feel movement</div>
+            </div>
+            <div style="text-align:right">
+              <div id="kick-count" style="font-size:26px;font-weight:900;color:#ff6b4a;line-height:1">0</div>
+              <div style="font-size:9.5px;color:rgba(254,240,230,.48);font-weight:700">today</div>
+            </div>
+          </button>
+          <div id="kick-congrats" style="display:none;padding:8px 16px 12px;border-top:.5px solid rgba(255,255,255,.09);font-size:12px;color:#4caf7d;font-weight:700">
+            ✓ Great! 10+ kicks logged — baby is active and healthy
+          </div>
+        </div>
+      </div>
+
+      <!-- Streak banner -->
+      <div style="padding:0 20px 24px">
+        <div class="card card-glow" style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:28px">🔥</span>
+            <div style="flex:1">
+              <div id="streak-title" style="font-size:14.5px;font-weight:900;color:#fef0e6"></div>
+              <div id="streak-sub" style="font-size:11.5px;color:rgba(254,240,230,.48);margin-top:2px"></div>
+              <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:8px;overflow:hidden">
+                <div id="streak-bar" style="height:100%;background:linear-gradient(90deg,#ff6b4a,#ffaa7a);box-shadow:0 0 8px #ff6b4a;border-radius:2px;transition:width .5s"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE SCREEN -->
+  <div id="screen-timeline" class="screen">
+    <div class="screen-in" style="padding:0 20px 24px;flex:1;overflow-y:auto">
+      <div style="height:58px"></div>
+      <div style="font-size:24px;font-weight:900;color:#fef0e6">Your journey</div>
+      <div id="tl-sub" style="font-size:13px;color:rgba(254,240,230,.48);margin-top:2px;margin-bottom:16px"></div>
+      <div style="height:6px;background:rgba(255,255,255,.07);border-radius:3px;margin-bottom:24px;overflow:hidden">
+        <div id="tl-progress" style="height:100%;border-radius:3px;background:linear-gradient(90deg,#ff6b4a,#ffaa7a);box-shadow:0 0 10px #ff6b4a;transition:width .5s"></div>
+      </div>
+      <div style="position:relative">
+        <div style="position:absolute;left:19px;top:20px;bottom:20px;width:2px;background:rgba(255,255,255,.07);border-radius:1px"></div>
+        <div id="tl-list" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACKING SCREEN -->
+  <div id="screen-tracking" class="screen">
+    <div class="screen-in" style="padding:0 20px 24px;flex:1;overflow-y:auto">
+      <div style="height:58px"></div>
+      <div style="font-size:24px;font-weight:900;color:#fef0e6">Daily log</div>
+      <div id="track-date" style="font-size:13px;color:rgba(254,240,230,.48);margin-top:2px;margin-bottom:18px"></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- BP -->
+        <div class="card">
+          <div class="lbl">Blood pressure</div>
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="flex:1">
+              <div style="font-size:10.5px;color:rgba(254,240,230,.48);margin-bottom:4px;font-weight:700">Systolic</div>
+              <input id="t-sys" class="inp" type="number" placeholder="120">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:10.5px;color:rgba(254,240,230,.48);margin-bottom:4px;font-weight:700">Diastolic</div>
+              <input id="t-dia" class="inp" type="number" placeholder="80">
+            </div>
+          </div>
+          <div style="font-size:10px;color:rgba(254,240,230,.48);margin-bottom:4px;font-weight:700">LAST 7 DAYS — SYSTOLIC</div>
+          <div id="bp-spark"></div>
+        </div>
+
+        <!-- Weight + Sleep -->
+        <div style="display:flex;gap:10px">
+          <div class="card" style="flex:1;padding:13px">
+            <div class="lbl">Weight kg</div>
+            <input id="t-weight" class="inp" type="number" step="0.1" placeholder="—" style="text-align:center;font-size:20px;font-weight:900">
+          </div>
+          <div class="card" style="flex:1;padding:13px">
+            <div class="lbl">Sleep</div>
+            <div id="sleep-display" style="text-align:center;font-size:20px;font-weight:900;color:#fef0e6">7<span style="font-size:12px;color:rgba(254,240,230,.48)">h</span></div>
+            <input id="t-sleep" type="range" min="3" max="12" step="0.5" value="7" oninput="updateSleepDisplay()" style="width:100%;accent-color:#ff6b4a;margin-top:6px">
+            <div id="sleep-spark" style="margin-top:8px"></div>
+          </div>
+        </div>
+
+        <!-- Symptoms -->
+        <div class="card">
+          <div class="lbl">Symptoms today</div>
+          <div id="sym-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+        </div>
+
+        <!-- Save -->
+        <button id="save-btn" class="btn-primary" onclick="saveLog()">Save today's entry</button>
+
+        <!-- Charts -->
+        <div class="card" style="margin-top:4px">
+          <div class="lbl">Weight trend</div>
+          <div id="weight-spark"></div>
+        </div>
+        <div class="card">
+          <div class="lbl">Mood trend (1-5)</div>
+          <div id="mood-spark"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPECIALISTS SCREEN -->
+  <div id="screen-specialists" class="screen">
+    <div id="spec-content" style="flex:1;overflow-y:auto"></div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div id="tab-bar">
+    <button class="tab-btn" onclick="switchTab('timeline')" id="tb-timeline">
+      <span class="tab-e" style="filter:grayscale(1);opacity:.38">🗓</span>
+      <span class="tab-lbl" style="color:rgba(254,240,230,.48)">Timeline</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tracking')" id="tb-tracking">
+      <span class="tab-e" style="filter:grayscale(1);opacity:.38">📋</span>
+      <span class="tab-lbl" style="color:rgba(254,240,230,.48)">Log</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('baby')" id="tb-baby">
+      <span class="tab-e">🌸</span>
+      <span class="tab-lbl" style="color:#ff6b4a">Baby</span>
+      <div class="tab-dot"></div>
+    </button>
+    <button class="tab-btn" onclick="switchTab('specialists')" id="tb-specialists">
+      <span class="tab-e" style="filter:grayscale(1);opacity:.38">🩺</span>
+      <span class="tab-lbl" style="color:rgba(254,240,230,.48)">Doctors</span>
+    </button>
+  </div>
 </div>
-
-<!-- HEADER -->
-<header class="bg-white/80 backdrop-blur-sm sticky top-0 z-30 border-b border-stone-100 px-4 py-3 flex items-center justify-between">
-  <div>
-    <h1 class="serif text-xl text-[#4a7c5e]">Bloom</h1>
-    <p id="header-sub" class="text-xs text-stone-400"></p>
-  </div>
-  <div class="text-right">
-    <p id="header-week" class="text-sm font-medium text-[#6b9e7e]"></p>
-    <p id="header-name" class="text-xs text-stone-400"></p>
-  </div>
-</header>
-
-<!-- MAIN -->
-<main class="max-w-lg mx-auto">
-
-  <!-- TIMELINE -->
-  <div id="tab-timeline" class="tab-pane px-4 py-4">
-    <div id="timeline-list" class="space-y-3"></div>
-  </div>
-
-  <!-- TRACKING -->
-  <div id="tab-tracking" class="tab-pane hidden px-4 py-4">
-    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 mb-5">
-      <h2 class="serif text-lg text-[#4a7c5e] mb-4">Log today</h2>
-      <div class="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs font-medium text-stone-500 mb-1">Systolic (mmHg)</label>
-          <input id="t-sys" type="number" placeholder="120" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-stone-500 mb-1">Diastolic (mmHg)</label>
-          <input id="t-dia" type="number" placeholder="80" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs font-medium text-stone-500 mb-1">Weight (kg)</label>
-          <input id="t-weight" type="number" step="0.1" placeholder="65.0" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-stone-500 mb-1">Sleep (hours)</label>
-          <input id="t-sleep" type="number" step="0.5" placeholder="7.5" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e]">
-        </div>
-      </div>
-      <div class="mb-3">
-        <label class="block text-xs font-medium text-stone-500 mb-1">Mood</label>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-stone-400">1</span>
-          <input id="t-mood" type="range" min="1" max="5" value="3" class="flex-1">
-          <span class="text-xs text-stone-400">5</span>
-          <span id="t-mood-val" class="text-sm text-[#6b9e7e] w-5 text-center font-semibold">3</span>
-        </div>
-      </div>
-      <div class="mb-3">
-        <label class="block text-xs font-medium text-stone-500 mb-2">Symptoms</label>
-        <div class="flex flex-wrap gap-2">
-          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'nausea')">Nausea</button>
-          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'headache')">Headache</button>
-          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'swelling')">Swelling</button>
-          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'fatigue')">Fatigue</button>
-          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'back pain')">Back pain</button>
-          <button class="sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500" onclick="toggleSym(this,'other')">Other</button>
-        </div>
-      </div>
-      <div class="mb-4">
-        <label class="block text-xs font-medium text-stone-500 mb-1">Notes</label>
-        <textarea id="t-notes" rows="2" placeholder="How are you feeling today?" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b9e7e] resize-none"></textarea>
-      </div>
-      <button onclick="saveLog()" class="w-full bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white rounded-xl py-2.5 text-sm font-medium transition-colors">Save entry</button>
-      <div id="save-ok" class="hidden text-center text-[#6b9e7e] text-sm mt-2 font-medium">&#10003; Entry saved</div>
-    </div>
-    <div class="space-y-4">
-      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Blood pressure &#8212; last 7 entries</h3>
-        <div id="chart-bp" class="h-14"></div>
-        <div class="flex gap-4 mt-2"><span class="text-xs text-[#e05c5c]">&#8212; Systolic</span><span class="text-xs text-[#e09a5c]">&#8212; Diastolic</span></div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Weight (kg) &#8212; last 7</h3>
-        <div id="chart-weight" class="h-14"></div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Mood &#8212; last 7</h3>
-        <div id="chart-mood" class="h-14"></div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Sleep (hrs) &#8212; last 7</h3>
-        <div id="chart-sleep" class="h-14"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- BABY TAB -->
-  <div id="tab-baby" class="tab-pane hidden px-4 py-4">
-
-    <!-- Avatar card -->
-    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 mb-4 text-center">
-      <div id="baby-sparkles" class="text-2xl mb-1 h-8"></div>
-      <div id="baby-avatar" class="mb-3" style="min-height:120px"></div>
-      <p id="baby-status-label" class="serif text-xl text-[#4a7c5e] mb-1"></p>
-      <p id="baby-message" class="text-sm text-stone-500 max-w-xs mx-auto leading-relaxed"></p>
-    </div>
-
-    <!-- Score -->
-    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 mb-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Wellbeing score</span>
-        <div class="flex items-center gap-2">
-          <span id="baby-streak" class="text-xs text-amber-500 font-semibold"></span>
-          <span id="baby-score" class="text-lg font-bold text-[#6b9e7e]"></span>
-        </div>
-      </div>
-      <div class="bg-stone-100 rounded-full h-3 overflow-hidden mb-4">
-        <div id="baby-score-bar" class="score-bar h-full rounded-full bg-[#6b9e7e]" style="width:0%"></div>
-      </div>
-      <div id="baby-nudges" class="space-y-2"></div>
-    </div>
-
-    <!-- Weekly doctor report -->
-    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-      <div class="flex items-center gap-2 mb-3">
-        <span class="text-base">&#129658;</span>
-        <h3 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Weekly report for your doctor</h3>
-      </div>
-      <div id="baby-report" class="text-sm text-stone-600 leading-relaxed mb-4 whitespace-pre-line bg-stone-50 rounded-xl p-4 border border-stone-100"></div>
-      <button onclick="copyReport()" class="w-full bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white rounded-xl py-2.5 text-sm font-medium transition-colors">Copy &amp; share with doctor</button>
-      <div id="copy-ok" class="hidden text-center text-[#6b9e7e] text-sm mt-2 font-medium">&#10003; Copied to clipboard</div>
-    </div>
-
-  </div>
-
-  <!-- SPECIALISTS -->
-  <div id="tab-specialists" class="tab-pane hidden px-4 py-4">
-    <p class="text-stone-500 text-sm mb-5">UK-based specialists who support you through pregnancy and beyond.</p>
-    <div id="specialists-list" class="space-y-4"></div>
-  </div>
-
-</main>
-
-<!-- BOTTOM NAV -->
-<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-100 flex z-30">
-  <button onclick="switchTab('timeline')" id="nav-timeline" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-[#6b9e7e]">
-    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-    <span class="text-xs font-medium">Timeline</span>
-  </button>
-  <button onclick="switchTab('tracking')" id="nav-tracking" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
-    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-    <span class="text-xs font-medium">Tracking</span>
-  </button>
-  <button onclick="switchTab('baby')" id="nav-baby" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="14" rx="7" ry="8"/><path d="M12 6 Q16 1 15 -1" stroke-linecap="round"/><path d="M12 6 Q8 1 9 -1" stroke-linecap="round"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/><path d="M9.5 17 Q12 19.5 14.5 17" stroke-linecap="round" fill="none"/></svg>
-    <span class="text-xs font-medium">Baby</span>
-  </button>
-  <button onclick="switchTab('specialists')" id="nav-specialists" class="flex-1 flex flex-col items-center py-3 gap-0.5 text-stone-400">
-    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-    <span class="text-xs font-medium">Specialists</span>
-  </button>
-</nav>
 
 <script>
-// ── State ────────────────────────────────────────────────────────────────────
-var appState = { name:'', currentWeek:12, logs:[] };
-var activeSymptoms = new Set();
-
-// ── Week data (weeks 1-40) ───────────────────────────────────────────────────
-var WD = {
-  1:{b:"Fertilisation may have just occurred. A single zygote containing all your baby's genetic information is forming. This tiny cell will divide rapidly as it travels toward the uterus.",m:"You may not know you're pregnant yet. Your body is quietly preparing the uterine lining. Hormone levels are beginning to shift.",w:"Start 400mcg folic acid daily if you haven't already — crucial in these early weeks for neural tube development.",a:"Begin taking folic acid and book a GP appointment to confirm pregnancy."},
-  2:{b:"The blastocyst is implanting into the uterine lining. Cells are differentiating into those that will become your baby and those that will form the placenta.",m:"Some women notice light implantation spotting. Your body is beginning to produce hCG, the hormone detected by pregnancy tests.",w:"Any heavy vaginal bleeding warrants a call to your GP. Light spotting at implantation is usually nothing to worry about.",a:"Take a home pregnancy test if your period is late."},
-  3:{b:"The embryo is the size of a poppy seed. The neural tube — future brain and spinal cord — is beginning to form. Three distinct cell layers are developing.",m:"Early symptoms may begin: mild nausea, tender breasts, fatigue. Your uterus is starting to grow, though invisibly.",w:"Avoid alcohol, raw fish, and unpasteurised dairy from this point on.",a:"Register with a midwife or maternity unit — early booking before 10 weeks is recommended."},
-  4:{b:"About the size of a lentil. The heart is beginning to form and will start beating soon. The foundations of the brain, spinal cord, and major organs are being laid down.",m:"Nausea may be intensifying, especially in the morning. Fatigue can feel overwhelming. Frequent urination is common as blood flow to kidneys increases.",w:"If nausea stops you keeping fluids down, speak to your midwife about hyperemesis gravidarum.",a:"Inform your employer when you feel ready — you're entitled to paid time off for antenatal appointments."},
-  5:{b:"The size of a sesame seed, with a beating heart at 100-160 bpm. Arm and leg buds are emerging. Small indentations mark where eyes and nostrils will form.",m:"Morning sickness is often at its peak. Your sense of smell may be heightened. Waistbands might feel tighter.",w:"One-sided pelvic pain or shoulder tip pain can indicate ectopic pregnancy — contact your midwife urgently.",a:"Book your dating scan, usually offered between 10-14 weeks."},
-  6:{b:"The size of a blueberry (about 6mm). The brain is growing rapidly. Tiny fingers and toes are budding, and the nose and jaw are taking shape.",m:"Fatigue and nausea are very common. Breasts may feel heavy and sore. Mood swings are normal as hormones fluctuate.",w:"Report any vaginal bleeding promptly. Ask your midwife about safe antiemetics if nausea is severe.",a:"Attend your first midwife booking appointment — this includes blood tests and a full health assessment."},
-  7:{b:"The size of a raspberry (about 1cm). Paddle-shaped hands and feet are developing. The brain is forming at nearly 100 new neurons per minute.",m:"Increased saliva can worsen nausea. Bloating and constipation are common due to progesterone slowing digestion.",w:"Stay well hydrated. Extra fibre, water, and gentle movement help with constipation.",a:"Research antenatal classes in your area — popular ones fill quickly, so book early."},
-  8:{b:"The size of a kidney bean (about 1.6cm). All major organs are present in early form. Fingers and toes are separating; the embryo is beginning to move spontaneously.",m:"Nausea may ease slightly, though it persists for many until 12 weeks. Clothes may feel tighter. Heartburn can begin.",w:"Severe or worsening heartburn is worth mentioning — safe antacids are available in pregnancy.",a:"Begin a pregnancy journal to track symptoms and milestones."},
-  9:{b:"Now officially a foetus, about 2.3cm. The embryonic tail is gone. Cartilage and bones are forming. The reproductive organs are developing.",m:"Your uterus is the size of a large orange. You may feel pulling sensations as it grows. Vivid dreams are common.",w:"Round ligament pain — sharp twinges at your sides — is normal but mention it at your next appointment.",a:"Check eligibility for NHS Healthy Start vouchers for free vitamins and food support."},
-  10:{b:"About 3.1cm — the size of a strawberry. Vital organs are all formed and beginning to function. The baby can swallow amniotic fluid; fingernails are appearing.",m:"The miscarriage risk drops significantly after this week. Energy may start to return. You may feel a little more like yourself.",w:"Discuss genetic screening options with your midwife if you haven't yet.",a:"Confirm your 12-week dating scan and ask about combined screening for chromosomal conditions."},
-  11:{b:"About 4.1cm — the size of a lime. Hair follicles are forming. The baby's reflexes are developing and they may startle at loud noises. The heartbeat is clearly visible on scan.",m:"Nausea often begins to ease around now. Energy may start returning. Your waistline is visibly thickening.",w:"If you haven't had your first midwife appointment yet, call your surgery today.",a:"Think about who you want as your birth partner and have that conversation with them."},
-  12:{b:"About 5.4cm — the size of a plum. The face looks increasingly human, with eyes moving closer together. The kidneys are producing urine into the amniotic fluid.",m:"The 12-week scan is a major milestone — the first time most parents see their baby moving. Nausea typically begins to subside.",w:"This scan also screens for chromosomal conditions — ask the sonographer to explain what they're checking.",a:"Share your news more widely if you wish — most people wait until after this scan."},
-  13:{b:"Welcome to the second trimester. About 7.4cm — the size of a peach. Bones are hardening, vocal cords are forming, and fingerprints are beginning to develop.",m:"Most women feel a marked improvement in energy and nausea. Your bump may begin to show. Blood volume continues to increase.",w:"Round ligament pain may increase as your uterus grows — gentle stretching and warmth help.",a:"Register for NHS antenatal classes or look into NCT, hypnobirthing, or private courses."},
-  14:{b:"About 8.7cm — the size of a lemon. The baby can now make facial expressions. Lanugo (fine downy hair) is covering the body to help regulate temperature.",m:"The second trimester often brings a welcome energy boost. Appetite may return. Skin and hair may improve due to rising oestrogen.",w:"Leg cramps, especially at night, are common — stay hydrated and stretch before bed.",a:"Book a dental check-up — NHS dental care is free during pregnancy, and hormones affect gum health."},
-  15:{b:"About 10cm — the size of a pear. Legs are now longer than arms. The baby can sense light and is practising breathing by inhaling amniotic fluid.",m:"Many women feel their best during weeks 14-28. Your bump is growing noticeably. You may begin to feel subtle fluttery movements.",w:"First-time mothers often don't feel movement until 18-22 weeks — don't worry if you haven't yet.",a:"Start researching birth options: midwife-led unit, hospital, or home birth."},
-  16:{b:"About 11.6cm — the size of an avocado. Eyes are making small movements. Hearing is developing; your baby can hear muffled sounds including your voice.",m:"You may be clearly showing now. Back pain can begin as your centre of gravity shifts. Nosebleeds and congestion are common.",w:"Avoid heavy lifting if you have back pain. Consider a pregnancy support belt.",a:"Consider starting pregnancy-safe exercise — swimming, yoga, and walking are ideal."},
-  17:{b:"About 13cm — the size of a turnip. Vernix (a protective coating) is forming over the skin. The skeleton is changing from cartilage to hardening bone.",m:"Your uterus is now roughly melon-sized. Braxton Hicks — painless practice contractions — may begin. Stretch marks may appear.",w:"Braxton Hicks are normal, but if tightenings are painful or regular, contact your midwife.",a:"Order a pregnancy pillow — sleep quality often declines from now and it makes a real difference."},
-  18:{b:"About 14.2cm — the size of a bell pepper. The baby is very active now. The ears are in their final position and the baby may respond to your voice.",m:"Many women feel first movements between weeks 16-20 — described as flutters, bubbles, or gentle taps. Blood pressure may be lower than usual.",w:"Rise slowly from lying or sitting to avoid dizziness. Report frequent fainting to your midwife.",a:"Begin researching birth preferences and what a birth plan typically covers."},
-  19:{b:"About 15.3cm — the size of a mango. Vernix caseosa is coating the skin. The sensory brain areas — taste, smell, sight, touch, hearing — are all developing.",m:"Your bump is growing steadily. The linea nigra and skin pigmentation changes are common. Hair may feel thicker and shinier.",w:"Pelvic girdle pain (PGP/SPD) can begin now — ask for a physiotherapy referral if walking becomes uncomfortable.",a:"Prepare a list of questions for your 20-week anomaly scan next week."},
-  20:{b:"About 25cm — the size of a banana. Halfway! All major body systems are formed. The baby swallows amniotic fluid regularly, helping develop the digestive system.",m:"You're halfway there! Many women feel energy peaking around now. The anomaly scan offers detailed information about your baby's development.",w:"The 20-week scan checks for structural conditions — the sonographer examines the heart, brain, spine, kidneys, and more.",a:"Attend your 20-week anomaly scan. Ask if you'd like to know the sex."},
-  21:{b:"About 27cm and 360g. Eyebrows and eyelids are fully formed. The baby is swallowing more amniotic fluid, which helps develop taste buds.",m:"You should be feeling regular movements now. Your belly button may begin to pop out. Skin stretching can cause itching — keep skin moisturised.",w:"Intense itching, especially on palms and soles, can indicate obstetric cholestasis — contact your midwife.",a:"Start moisturising your bump daily to support skin elasticity."},
-  22:{b:"About 28cm. The baby's grip is strong and they may be sucking their thumb. The inner ear is fully developed — they can now hear clearly.",m:"Your centre of gravity continues to shift. Swollen ankles and feet are common, especially in the evening.",w:"Sudden swelling that affects the face or comes on rapidly warrants immediate contact with your midwife.",a:"Look into perineal massage to prepare for birth — many start around 35 weeks but it's good to know about now."},
-  23:{b:"About 29cm and 500g. The baby's lungs are developing rapidly. Fingerprints are fully formed. They're practising breathing movements.",m:"Lower back and hip pain are common as ligaments soften. You may feel winded more easily as the uterus grows.",w:"Report any sudden decrease in your baby's movement to your midwife promptly.",a:"Begin researching cord blood banking and delayed cord clamping ahead of your birth plan."},
-  24:{b:"About 30cm and 600g. The baby's face is almost fully formed. REM sleep is occurring — your baby may be dreaming.",m:"The uterus is now roughly at your belly button. Heartburn and indigestion are common. Small frequent meals help.",w:"Your 25-week appointment is coming up — it includes a blood pressure check and urine test. Don't miss it.",a:"Complete the MATB1 form with your midwife — you'll need it to claim maternity pay."},
-  25:{b:"About 34cm and 660g. The baby is putting on fat, giving a more rounded appearance. Their nostrils are opening and they're practising breathing.",m:"Feet and ankles may swell more. Sleep can become more disrupted. Round ligament pain may intensify.",w:"Burning or painful urination may indicate a UTI — treat promptly as UTIs in pregnancy can cause complications.",a:"Research and begin a list for your maternity bag — it's never too early."},
-  26:{b:"About 35cm and 760g. The retinas are developed and the baby can respond to light and dark. White fat is building up under the skin.",m:"You may feel short of breath as the uterus pushes on the diaphragm. Pregnancy brain is real and common.",w:"Your 28-week appointment will include a glucose tolerance test if you're at risk of gestational diabetes.",a:"Begin drafting your birth plan and discuss it with your midwife at your next appointment."},
-  27:{b:"About 36cm and 875g. The baby has established sleep and wake cycles. Their immune system is developing through antibodies passed via the placenta.",m:"The third trimester is approaching. Fatigue may return. Frequent urination is common again as the baby presses on the bladder.",w:"At 28 weeks, if you are Rhesus negative, you will be offered an anti-D injection. Attend this appointment.",a:"Finalise your maternity leave dates and notify your employer in writing."},
-  28:{b:"Welcome to the third trimester. About 37cm and 1kg. The baby's brain is rapidly maturing. Their eyes can open and close and they respond to light.",m:"You may feel more tired and experience more Braxton Hicks. Swelling, heartburn, and difficulty sleeping are common. Rest when you can.",w:"From 28 weeks, you should feel your baby move every day. Contact your midwife immediately if movement reduces.",a:"Attend your 28-week midwife appointment — blood tests and blood pressure check are done here."},
-  29:{b:"About 38cm and 1.15kg. The baby is gaining weight rapidly. Brain, lungs, and muscles are maturing at pace.",m:"Breathlessness, heartburn, and back pain may intensify. Small, frequent meals help with heartburn.",w:"Keep a daily record of your baby's movements. If the pattern changes, contact your midwife the same day.",a:"Book a tour of your maternity unit or birth centre if you plan to give birth there."},
-  30:{b:"About 40cm and 1.3kg. The baby is practising breathing regularly and can distinguish light from dark. Fingernails are growing.",m:"The bump is large now and may feel heavy. Waddling is normal — the pelvis is widening. Sleep may require a pillow between the knees.",w:"Gestational diabetes screening should be completed if not already done. Report unusual thirst or very frequent urination.",a:"Pack the essentials for your hospital bag — nappies, baby clothes, your notes, snacks, and comfort items."},
-  31:{b:"About 41cm and 1.5kg. The baby is plumping up. Their kicks and movements are stronger and more purposeful.",m:"Pelvic pressure is increasing. You may experience lightning crotch — sharp shooting pains — as the baby descends.",w:"If you experience more than 5 contractions in an hour, contact your midwife or triage immediately.",a:"Complete your birth plan and share it with your birth partner so they can advocate for you."},
-  32:{b:"About 42cm and 1.7kg. The baby is settling into a head-down position. Lanugo is shedding; vernix remains.",m:"Fatigue is common. Shortness of breath may ease if the baby drops. Swelling in hands and feet is normal.",w:"Preeclampsia symptoms — severe headache, visual disturbances, upper abdominal pain, sudden swelling — require immediate medical attention.",a:"Attend your 32-week midwife appointment and discuss the baby's position."},
-  33:{b:"About 43cm and 1.9kg. The immune system is receiving a surge of antibodies. Skull bones are hardening but remain flexible for birth.",m:"Sleep disruption is common. You may feel very aware of every movement. Braxton Hicks may feel more intense.",w:"If you haven't discussed pain relief options with your midwife yet, do so now — feel informed before labour.",a:"Finalise your birth partner's role and make sure they know your wishes and where to take you."},
-  34:{b:"About 45cm and 2.1kg. The lungs are nearly fully mature — a baby born now has excellent survival rates. The baby is increasingly cramped.",m:"You may feel very heavy and uncomfortable. Sleeping on your left side is recommended to improve blood flow.",w:"Lie on your side rather than your back when resting — lying flat can reduce blood flow to the baby from around this point.",a:"Freeze some batch-cooked meals for after the birth — you'll thank yourself."},
-  35:{b:"About 46cm and 2.4kg. The baby is gaining roughly 200g per week. Most organ systems are fully mature.",m:"The baby may begin to engage (drop into the pelvis). This can relieve breathlessness but increase pelvic pressure.",w:"Continue monitoring movements daily. Any significant reduction should prompt an immediate call to your midwife.",a:"Start perineal massage if you haven't already — evidence suggests it helps reduce tearing."},
-  36:{b:"About 47cm and 2.6kg. Nearly full term. The skull remains soft and flexible, with overlapping plates to help with birth.",m:"You're likely feeling very ready now. Cervical changes may cause more discharge. Nesting instincts are common and normal.",w:"If you notice a gush of fluid, ring labour triage — your waters may have broken. Call immediately if it's green, brown, or blood-stained.",a:"Attend your 36-week appointment — the midwife will check the baby's position and discuss your birth plan."},
-  37:{b:"About 48cm and 2.9kg. Your baby is now considered full term. The lungs are mature, and all systems are ready for independent life.",m:"You may lose the mucus plug (show) — a sign the cervix is beginning to change. Labour could be days or weeks away.",w:"Stay within reasonable distance of your birth place from this point. Keep your phone charged.",a:"Do a final check of your hospital bag. Confirm your birth partner knows the route and has the car seat fitted."},
-  38:{b:"About 49cm and 3.1kg. The baby's brain and nervous system are continuing to develop — this will carry on for years after birth.",m:"Pelvic pressure and practice contractions may intensify. You may feel very heavy and ready. Rest as much as you can.",w:"True labour contractions are regular, intensifying, and don't ease with movement. Braxton Hicks ease when you move.",a:"Rest, eat well, and stay as comfortable as possible. Your body is doing an incredible job."},
-  39:{b:"About 50cm and 3.3kg. The baby is ready. They carry antibodies from you to protect against infections in early life.",m:"Labour could begin any time. Signs include a show, waters breaking, or regular contractions every 5 minutes lasting 60 seconds.",w:"If your waters break and the fluid is green or brown, contact triage immediately — this is meconium and needs assessment.",a:"Trust your instincts. When something feels different, call your midwife or triage — you're never wasting their time."},
-  40:{b:"About 51cm and 3.5kg — fully grown and ready to meet you. The placenta is at maximum capacity and your baby is perfectly prepared for birth.",m:"You've made it to your due date. Only 4% of babies arrive on their due date exactly — try to stay patient and rested.",w:"If labour hasn't started by 40-42 weeks, your midwife will discuss induction options with you.",a:"Rest, stay connected with people who love you, and know that your body knows what it's doing. You're almost there."}
+// ── Theme ─────────────────────────────────────────────────────────────────────
+var T = {
+  primary:'#ff6b4a', accent:'#ffaa7a', green:'#4caf7d',
+  text:'#fef0e6', muted:'rgba(254,240,230,0.48)',
+  border:'rgba(255,255,255,0.09)', card:'rgba(255,255,255,0.07)',
+  cardGlow:'rgba(255,107,74,0.13)'
 };
 
-function getWD(w) {
-  return WD[w] || {
-    b:"At week "+w+", your baby continues to grow and mature. Movements are becoming stronger and organs are developing further.",
-    m:"Your body is adapting to support your growing baby. Your bump is growing and you may feel more movement. Rest and keep appointments.",
-    w:"Attend all antenatal appointments and report any unusual symptoms — reduced movement, heavy bleeding, or severe pain — promptly to your midwife.",
-    a:"Keep antenatal appointments up to date and continue with pregnancy-safe exercise and a balanced diet."
-  };
+// ── Week data ─────────────────────────────────────────────────────────────────
+var WEEKS = {
+  8:  { e:'🫐', size:'blueberry',   cm:1.6,  g:1,    tri:1, feel:[{i:'🤢',l:'Morning sickness',n:'Peaks around now — try ginger',x:3},{i:'😴',l:'Extreme fatigue',n:'Rest when you can',x:2},{i:'💛',l:'Tender breasts',n:'Try a supportive bra',x:1}], energy:2, fact:'Baby\'s heart beats 160× a minute — twice as fast as yours.' },
+  12: { e:'🍋', size:'lime',         cm:5.4,  g:58,   tri:1, feel:[{i:'🥲',l:'Nausea easing',n:'Relief is coming soon!',x:3},{i:'😴',l:'Still tired',n:'Energy will pick up soon',x:2},{i:'💭',l:'Mood swings',n:'Completely normal — be kind to yourself',x:1}], energy:3, fact:'All major organs are formed. Baby can yawn, stretch and hiccup.' },
+  16: { e:'🥑', size:'avocado',     cm:11.6, g:100,  tri:2, feel:[{i:'⚡',l:'Energy returning',n:'The golden trimester is here!',x:3},{i:'🤸',l:'Round ligament pain',n:'Sharp twinges when moving fast',x:2},{i:'😊',l:'Glowing skin',n:'Increased blood flow — enjoy it',x:1}], energy:4, fact:'Baby can hear sounds outside the womb. Your voice is their favourite.' },
+  20: { e:'🍌', size:'banana',      cm:25,   g:300,  tri:2, feel:[{i:'🦋',l:'Baby flutters',n:'You may feel first kicks soon',x:3},{i:'🔥',l:'Heartburn starting',n:'Try sitting upright after meals',x:2},{i:'⚡',l:'Good energy levels',n:'Make the most of this phase',x:1}], energy:4, fact:'Baby\'s gender may have been visible at your scan. Halfway there!' },
+  24: { e:'🌽', size:'ear of corn', cm:30,   g:600,  tri:2, feel:[{i:'💨',l:'Braxton Hicks',n:'Warm-up contractions — normal',x:3},{i:'🫀',l:'Round ligament pain',n:'Sharp when changing position',x:2},{i:'🔥',l:'Heartburn after meals',n:'Smaller portions help',x:1}], energy:3, fact:'Baby can hear your voice clearly. Try singing — they already know it.' },
+  28: { e:'🍆', size:'aubergine',   cm:37,   g:1000, tri:3, feel:[{i:'🛌',l:'Back ache worsening',n:'A pregnancy pillow helps a lot',x:3},{i:'😤',l:'Shortness of breath',n:'Baby is pushing up on your lungs',x:2},{i:'🦵',l:'Leg cramps at night',n:'Stay hydrated and stretch calves',x:1}], energy:3, fact:'Baby opens their eyes for the first time this week!' },
+  32: { e:'🥥', size:'coconut',     cm:42,   g:1700, tri:3, feel:[{i:'🌊',l:'Swollen ankles',n:'Elevate feet when resting',x:3},{i:'🚽',l:'Frequent bathroom trips',n:'Baby pressing on bladder',x:2},{i:'😤',l:'Breathlessness',n:'Try sleeping propped up',x:1}], energy:2, fact:'Baby is putting on about 200g a week now — mainly fat and muscle.' },
+  36: { e:'🍈', size:'honeydew',    cm:47,   g:2600, tri:3, feel:[{i:'⬇️',l:'Baby dropping',n:'Called engagement — breathing easier',x:3},{i:'😰',l:'Pelvic pressure',n:'Normal as baby moves down',x:2},{i:'🌊',l:'Increased discharge',n:'Your body preparing for birth',x:1}], energy:2, fact:'Baby is almost ready. They practice breathing movements every day.' },
+  40: { e:'🍉', size:'watermelon',  cm:51,   g:3400, tri:3, feel:[{i:'⚡',l:'Nesting instinct',n:'Bursts of energy to prepare',x:3},{i:'😰',l:'Pelvic discomfort',n:'Baby is very low now',x:2},{i:'🤰',l:'Restlessness',n:'Nearly time — you\'ve got this',x:1}], energy:2, fact:'Full term! Your baby is ready to meet you. Every hour counts now.' }
+};
+
+function getWeekData(w) {
+  var keys = Object.keys(WEEKS).map(Number).sort(function(a,b){return a-b;});
+  var closest = keys.reduce(function(a,b){ return Math.abs(b-w)<Math.abs(a-w)?b:a; });
+  return WEEKS[closest];
 }
 
-// ── Specialists ──────────────────────────────────────────────────────────────
-var SPECS = [
-  {type:"Private Midwife",name:"Sophie Hargreaves RM",desc:"Experienced independent midwife offering full continuity of care throughout pregnancy, birth, and the postnatal period.",avail:"Mon 21 Apr",price:"150",email:"s.hargreaves@bloombirthcare.co.uk"},
-  {type:"Doula",name:"Amara Osei-Mensah",desc:"Birth and postnatal doula providing emotional, physical, and informational support throughout labour and the fourth trimester.",avail:"Wed 23 Apr",price:"120",email:"amara@birthcompanion.co.uk"},
-  {type:"Lactation Consultant",name:"Dr. Helen Forsythe IBCLC",desc:"International Board Certified Lactation Consultant specialising in breastfeeding challenges, latch issues, and infant feeding.",avail:"Thu 24 Apr",price:"90",email:"helen@feedingfirst.co.uk"},
-  {type:"Pelvic Floor Physio",name:"Laura Whitfield MSc MCSP",desc:"Specialist women's health physiotherapist focusing on pelvic health, pregnancy pain, and postnatal recovery.",avail:"Fri 25 Apr",price:"85",email:"l.whitfield@pelvichealth.co.uk"},
-  {type:"Obstetric Consultant",name:"Mr. Rajesh Mehta FRCOG",desc:"Consultant obstetrician with expertise in high-risk pregnancies, VBAC, and complex maternal health needs.",avail:"Tue 29 Apr",price:"200",email:"r.mehta@maternalconsult.co.uk"},
-  {type:"Perinatal Mental Health",name:"Dr. Clara Steinberg CPsychol",desc:"Chartered psychologist specialising in perinatal anxiety, birth trauma, tokophobia, and postnatal depression.",avail:"Mon 28 Apr",price:"120",email:"clara@perinatalmind.co.uk"}
+function trimester(w) { return w<=13?1:w<=26?2:3; }
+
+// ── Doctors ───────────────────────────────────────────────────────────────────
+var DOCS = [
+  { id:1, name:'Dr. Sarah Mitchell', role:'Midwife & Consultant', rating:4.9, reviews:142, wait:'~5 min', spec:'High-risk pregnancy', avail:true, e:'👩‍⚕️', bio:'10 years supporting mums through all stages of pregnancy. Specialises in anxiety management and high BP.' },
+  { id:2, name:'Dr. James Okafor',   role:'Obstetric Specialist',  rating:4.8, reviews:89,  wait:'~12 min',spec:'Fetal medicine',     avail:true, e:'👨‍⚕️', bio:'Consultant at King\'s College. Expert in fetal development and complicated pregnancies.' },
+  { id:3, name:'Dr. Priya Sharma',   role:'Maternal–Fetal Medicine',rating:4.9,reviews:210, wait:'~20 min',spec:'Nutrition & wellness',avail:false,e:'👩‍⚕️', bio:'Leads nutrition research for pregnant women. Available for lifestyle and wellness consults.' }
 ];
 
-// ── Sparkline ────────────────────────────────────────────────────────────────
-function spark(vals, color) {
-  if (!vals || vals.length === 0) return '<p class="text-xs text-stone-300 italic pt-2">No data yet</p>';
-  var W=280,H=48,p=6;
-  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=mx-mn||1;
-  var pts=vals.map(function(v,i){ return [p+(i/Math.max(vals.length-1,1))*(W-2*p), H-p-((v-mn)/rng)*(H-2*p)]; });
-  var d=pts.map(function(pt,i){ return (i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1); }).join(' ');
-  var dots=pts.map(function(pt){ return '<circle cx="'+pt[0].toFixed(1)+'" cy="'+pt[1].toFixed(1)+'" r="3" fill="'+color+'"/>'; }).join('');
-  var last=pts[pts.length-1];
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="w-full" style="overflow:visible"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+dots+'<text x="'+(last[0]+5)+'" y="'+(last[1]+4)+'" font-size="9" fill="'+color+'">'+vals[vals.length-1]+'</text></svg>';
+// ── State ─────────────────────────────────────────────────────────────────────
+var appState = { name:'', currentWeek:12, logs:[] };
+var streakDays = 0;
+var babyMood = 'happy';
+var babyKicks = 0;
+var babyEnergy = 3;
+var factOpen = false;
+var activeSymptoms = [];
+var specView = 'list';
+var specDocId = null;
+var callSecs = 0;
+var callTimer = null;
+var activeTab = 'baby';
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+function persist() { localStorage.setItem('bloom2', JSON.stringify(appState)); }
+
+function computeStreak() {
+  var streak = 0;
+  for (var i=0; i<30; i++) {
+    var d = new Date(); d.setDate(d.getDate()-i);
+    var ds = d.toDateString();
+    if (appState.logs.some(function(l){ return new Date(l.date).toDateString()===ds; })) { streak++; }
+    else break;
+  }
+  return streak;
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Sparkline ─────────────────────────────────────────────────────────────────
+function spark(vals, color, height) {
+  height = height || 28;
+  if (!vals || vals.length===0) return '<p style="font-size:11px;color:rgba(254,240,230,.3);padding:4px 0">No data yet</p>';
+  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=mx-mn||1;
+  var pts = vals.map(function(v,i){
+    return [(i/(vals.length-1))*100, height-((v-mn)/rng)*(height-6)+3];
+  });
+  var polypts = pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ');
+  var last = pts[pts.length-1];
+  return '<svg width="100%" height="'+height+'" viewBox="0 0 100 '+height+'" preserveAspectRatio="none">'+
+    '<polyline points="'+polypts+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="3.5" fill="'+color+'"/>'+
+    '</svg>';
+}
+
+// ── Blob ──────────────────────────────────────────────────────────────────────
+function blobHTML(mood) {
+  var size = 162;
+  var faces = {
+    happy:  { ry:5.5, mouth:'wide',   cheeks:true  },
+    calm:   { ry:4.2, mouth:'gentle', cheeks:true  },
+    tired:  { ry:3,   mouth:'small',  cheeks:false },
+    anxious:{ ry:7,   mouth:'flat',   cheeks:false }
+  };
+  var f = faces[mood] || faces.happy;
+  var cx=size/2, ey=size*0.40, es=size*0.148, my=size*0.59;
+  var blobB='#ff3d1a';
+
+  var mouths = {
+    wide:   'M'+(cx-25)+','+my+' Q'+cx+','+(my+24)+' '+(cx+25)+','+my,
+    gentle: 'M'+(cx-17)+','+my+' Q'+cx+','+(my+14)+' '+(cx+17)+','+my,
+    small:  'M'+(cx-11)+','+my+' Q'+cx+','+(my+8)+' '+(cx+11)+','+my,
+    flat:   'M'+(cx-14)+','+(my+3)+' L'+(cx+14)+','+(my+3)
+  };
+  var sw = (f.mouth==='flat'||f.mouth==='small') ? '2.8' : '3.5';
+  var opac = (f.mouth==='flat'||f.mouth==='small') ? ' opacity=".75"' : '';
+
+  var cheeks = f.cheeks
+    ? '<circle cx="'+(cx-es-15)+'" cy="'+(ey+17)+'" r="'+(size*0.065)+'" fill="#fff" opacity=".18"/>'+
+      '<circle cx="'+(cx+es+15)+'" cy="'+(ey+17)+'" r="'+(size*0.065)+'" fill="#fff" opacity=".18"/>'
+    : '';
+
+  return '<div class="blob-float" onclick="blobTap()" style="width:'+size+'px;height:'+size+'px;cursor:pointer;position:relative;transition:transform .15s" id="blob-outer">'+
+    '<div class="glow-pulse" style="position:absolute;inset:-24px;border-radius:50%;background:radial-gradient(circle,rgba(255,107,74,.28) 0%,transparent 70%)"></div>'+
+    '<div class="blob-body" style="width:100%;height:100%;background:radial-gradient(ellipse at 36% 30%,#ffd4aa,#ff9a70 46%,#ff3d1a);border-radius:62% 38% 46% 54%/60% 44% 56% 40%;box-shadow:0 0 40px rgba(255,100,60,.35),0 16px 40px rgba(0,0,0,.5)"></div>'+
+    '<svg width="'+size+'" height="'+size+'" style="position:absolute;inset:0;overflow:visible">'+
+      '<ellipse class="eye-l" cx="'+(cx-es)+'" cy="'+ey+'" rx="'+(f.ry*1.1)+'" ry="'+f.ry+'" fill="#fff"/>'+
+      '<circle cx="'+(cx-es+2)+'" cy="'+(ey-1)+'" r="'+(f.ry*0.46)+'" fill="'+blobB+'" opacity=".9"/>'+
+      '<ellipse class="eye-r" cx="'+(cx+es)+'" cy="'+ey+'" rx="'+(f.ry*1.1)+'" ry="'+f.ry+'" fill="#fff"/>'+
+      '<circle cx="'+(cx+es+2)+'" cy="'+(ey-1)+'" r="'+(f.ry*0.46)+'" fill="'+blobB+'" opacity=".9"/>'+
+      '<path d="'+mouths[f.mouth]+'" stroke="#fff" stroke-width="'+sw+'" fill="none" stroke-linecap="round"'+opac+'/>'+
+      cheeks+
+    '</svg>'+
+  '</div>';
+}
+
+// ── Streak ring ───────────────────────────────────────────────────────────────
+function streakRingHTML(streak) {
+  var size=64, r=27, c=2*Math.PI*r, pct=Math.min(streak/14,1);
+  return '<div style="width:'+size+'px;height:'+size+'px;position:relative;flex-shrink:0">'+
+    '<svg width="'+size+'" height="'+size+'">'+
+      '<circle cx="32" cy="32" r="'+r+'" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="4"/>'+
+      '<circle cx="32" cy="32" r="'+r+'" fill="none" stroke="#ff6b4a" stroke-width="4"'+
+        ' stroke-dasharray="'+(c*pct)+' '+c+'" stroke-linecap="round"'+
+        ' transform="rotate(-90 32 32)" style="filter:drop-shadow(0 0 6px #ff6b4a)"/>'+
+    '</svg>'+
+    '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">'+
+      '<span style="font-size:15px;font-weight:900;color:#ff6b4a;line-height:1">'+streak+'</span>'+
+      '<span style="font-size:7.5px;font-weight:800;color:rgba(254,240,230,.48);letter-spacing:.8px">DAYS</span>'+
+    '</div>'+
+  '</div>';
+}
+
+// ── Baby tab render ───────────────────────────────────────────────────────────
+function renderBabyTab() {
+  var w = appState.currentWeek;
+  var b = getWeekData(w);
+  var tri = trimester(w);
+
+  // Header
+  document.getElementById('baby-week-lbl').textContent = 'Week '+w+' · Trimester '+tri;
+  document.getElementById('baby-greeting').textContent = 'Hello, '+appState.name+' 🌸';
+  document.getElementById('streak-ring').innerHTML = streakRingHTML(streakDays);
+
+  // Trimester bars
+  [1,2,3].forEach(function(n) {
+    var fill = document.getElementById('tri-fill-'+n);
+    var lbl  = document.getElementById('tri-lbl-'+n);
+    var starts = [0, 0, 13, 26];
+    var ends   = [0, 13, 13, 14];
+    var width, bg, glow;
+    if (n < tri) {
+      width='100%'; bg=T.primary; glow='';
+    } else if (n === tri) {
+      var pct = Math.max(0, Math.min(100, ((w - starts[n]) / ends[n]) * 100));
+      width=pct+'%';
+      bg='linear-gradient(90deg,'+T.primary+','+T.accent+')';
+      glow='box-shadow:0 0 8px '+T.primary;
+    } else {
+      width='0%'; bg='transparent'; glow='';
+    }
+    fill.style.cssText = 'height:100%;width:'+width+';background:'+bg+';'+glow+';transition:width .5s ease';
+    lbl.style.color = n<=tri ? T.primary : T.muted;
+  });
+
+  // Blob
+  document.getElementById('blob-wrap').innerHTML = blobHTML(babyMood);
+
+  // Size label
+  var sizeStr = b.size.match(/^[aeiou]/i) ? 'About the size of an '+b.e : 'About the size of a '+b.e;
+  document.getElementById('blob-size-label').textContent = sizeStr;
+  document.getElementById('blob-size-sub').textContent = b.cm+' cm · '+(b.g>=1000?(b.g/1000).toFixed(1)+'kg':b.g+'g')+' · tap me!';
+
+  // Fact
+  document.getElementById('fact-text').textContent = b.fact;
+
+  // Feel list
+  document.getElementById('feel-list').innerHTML = b.feel.map(function(f,i) {
+    var dots = [0,1,2].map(function(j) {
+      return '<div style="width:6px;height:6px;border-radius:3px;background:'+(j<f.x?T.primary:'rgba(255,255,255,.1)')+'"></div>';
+    }).join('');
+    return '<div style="display:flex;align-items:flex-start;gap:11px">'+
+      '<div style="width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">'+f.i+'</div>'+
+      '<div>'+
+        '<div style="font-size:13.5px;font-weight:700;color:'+T.text+'">'+f.l+'</div>'+
+        '<div style="font-size:11.5px;color:'+T.muted+';margin-top:1px">'+f.n+'</div>'+
+      '</div>'+
+      '<div style="margin-left:auto;display:flex;gap:3px;padding-top:4px">'+dots+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Mood buttons
+  var moods = [{id:'happy',e:'😊',l:'Great'},{id:'calm',e:'😌',l:'Calm'},{id:'tired',e:'😴',l:'Tired'},{id:'anxious',e:'😟',l:'Worried'}];
+  document.getElementById('mood-btns').innerHTML = moods.map(function(m) {
+    var on = babyMood===m.id;
+    return '<button onclick="setMood(\''+m.id+'\')" style="flex:1;border:1.5px solid '+(on?T.primary:'transparent')+';border-radius:12px;padding:8px 0;cursor:pointer;background:'+(on?'rgba(255,107,74,.2)':'rgba(255,255,255,.05)')+';display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .16s;transform:'+(on?'scale(1.07)':'scale(1)')+';font-family:Nunito">'+
+      '<span style="font-size:18px">'+m.e+'</span>'+
+      '<span style="font-size:8.5px;font-weight:800;color:'+(on?T.primary:T.muted)+';font-family:Nunito">'+m.l+'</span>'+
+    '</button>';
+  }).join('');
+
+  // Energy bars
+  document.getElementById('energy-bars').innerHTML = [5,4,3,2,1].map(function(lvl) {
+    var filled = lvl <= babyEnergy;
+    var topFilled = filled && lvl===babyEnergy;
+    return '<div onclick="setEnergy('+lvl+')" style="height:8px;border-radius:4px;cursor:pointer;background:'+(filled?'rgba(255,'+(107+lvl*10)+',74,'+(0.5+lvl*0.1)+')':'rgba(255,255,255,.06)')+';box-shadow:'+(topFilled?'0 0 6px '+T.primary:'none')+';transition:all .15s"></div>';
+  }).join('');
+  var energyLabels = ['','Low','Low','Okay','Good','Great'];
+  document.getElementById('energy-lbl').textContent = energyLabels[babyEnergy];
+
+  // Kick counter
+  document.getElementById('kick-count').textContent = babyKicks;
+  document.getElementById('kick-congrats').style.display = babyKicks>=10?'block':'none';
+
+  // Streak banner
+  document.getElementById('streak-title').textContent = streakDays+'-day streak!';
+  document.getElementById('streak-sub').textContent = streakDays>=14 ? 'You\'ve unlocked the 2-week badge 🏅' : (14-streakDays)+' more days for your 2-week badge';
+  document.getElementById('streak-bar').style.width = Math.min((streakDays/14)*100,100)+'%';
+}
+
+// ── Baby interactions ─────────────────────────────────────────────────────────
+function blobTap() {
+  factOpen = !factOpen;
+  var fc = document.getElementById('fact-card');
+  fc.style.display = factOpen ? 'block' : 'none';
+  if (factOpen) fc.classList.add('slide-up');
+  var outer = document.getElementById('blob-outer');
+  if (outer) {
+    outer.style.transform='scale(0.88) rotate(-7deg)';
+    setTimeout(function(){ outer.style.transform='scale(1) rotate(0deg)'; },150);
+  }
+}
+
+function setMood(mood) {
+  babyMood = mood;
+  renderBabyTab();
+  var fc = document.getElementById('fact-card');
+  if (factOpen) fc.style.display='block';
+}
+
+function setEnergy(lvl) {
+  babyEnergy = lvl;
+  renderBabyTab();
+}
+
+function addKick() {
+  babyKicks++;
+  document.getElementById('kick-count').textContent = babyKicks;
+  document.getElementById('kick-congrats').style.display = babyKicks>=10?'block':'none';
+  var btn = document.getElementById('kick-btn');
+  btn.classList.remove('kick-pop');
+  void btn.offsetWidth;
+  btn.classList.add('kick-pop');
+  setTimeout(function(){ btn.classList.remove('kick-pop'); },360);
+}
+
+// ── Timeline tab ──────────────────────────────────────────────────────────────
+function renderTimelineTab() {
+  var w = appState.currentWeek;
+  var pct = (w/40)*100;
+  document.getElementById('tl-sub').textContent = 'Week '+w+' of 40 · '+Math.round(pct)+'% complete';
+  document.getElementById('tl-progress').style.width = pct+'%';
+
+  var events = [
+    { w:12, e:'🔬', title:'First trimester scan',   sub:'Nuchal translucency check' },
+    { w:16, e:'💊', title:'Iron & folic acid check', sub:'Blood panel results' },
+    { w:20, e:'📸', title:'Anomaly scan',            sub:'Detailed anatomy check' },
+    { w:24, e:'🩸', title:'Glucose screening',       sub:'Check for gestational diabetes' },
+    { w:28, e:'💉', title:'Whooping cough vaccine',  sub:'Recommended 27–36 weeks' },
+    { w:32, e:'🔬', title:'Growth scan',             sub:'Check position & size' },
+    { w:36, e:'🧫', title:'Group B Strep test',      sub:'Simple swab test' },
+    { w:40, e:'👶', title:'Due date',                sub:'Hello, world!', special:true }
+  ];
+
+  var firstNotDone = -1;
+  var items = events.map(function(ev, i) {
+    var done = w > ev.w;
+    var isCurrent = !done && firstNotDone===-1 && (function(){ firstNotDone=i; return true; })();
+
+    var dotBg = done ? T.primary : isCurrent ? 'rgba(255,107,74,.25)' : 'rgba(255,255,255,.06)';
+    var dotBorder = isCurrent ? '2px solid '+T.primary : 'none';
+    var dotShadow = isCurrent ? '0 0 0 5px rgba(255,107,74,.2)' : 'none';
+    var dotContent = done ? '<span style="color:#fff;font-size:15px">✓</span>' : '<span style="font-size:18px">'+ev.e+'</span>';
+
+    var cardBg = ev.special ? 'rgba(255,107,74,.12)' : T.card;
+    var cardBorder = isCurrent ? '1.5px solid rgba(255,107,74,.4)' : '1px solid '+T.border;
+    var cardOpacity = done ? '.55' : '1';
+
+    var badge = isCurrent
+      ? '<span style="font-size:9.5px;font-weight:800;color:'+T.primary+';background:rgba(255,107,74,.18);padding:2px 8px;border-radius:8px">NOW</span>'
+      : ev.special
+      ? '<span style="font-size:10px;font-weight:800;color:'+T.accent+'">⭐ DUE DATE</span>'
+      : (!done && ev.w>w)
+      ? '<span style="font-size:10px;color:'+T.muted+'">in '+(ev.w-w)+'w</span>'
+      : '';
+
+    return '<div style="display:flex;gap:14px;align-items:flex-start">'+
+      '<div style="width:40px;height:40px;border-radius:20px;flex-shrink:0;z-index:1;background:'+dotBg+';border:'+dotBorder+';display:flex;align-items:center;justify-content:center;box-shadow:'+dotShadow+'">'+dotContent+'</div>'+
+      '<div style="flex:1;background:'+cardBg+';border-radius:20px;padding:11px 14px;border:'+cardBorder+';opacity:'+cardOpacity+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<span style="font-size:10px;font-weight:800;color:'+(isCurrent?T.primary:T.muted)+';letter-spacing:.9px">WEEK '+ev.w+'</span>'+
+          badge+
+        '</div>'+
+        '<div style="font-size:14px;font-weight:800;color:'+T.text+';margin-top:3px">'+ev.title+'</div>'+
+        '<div style="font-size:11.5px;color:'+T.muted+';margin-top:2px">'+ev.sub+'</div>'+
+      '</div>'+
+    '</div>';
+  });
+
+  document.getElementById('tl-list').innerHTML = items.join('');
+}
+
+// ── Tracking tab ──────────────────────────────────────────────────────────────
+var SYMS_LIST = ['Nausea','Headache','Swelling','Fatigue','Back pain'];
+
+function renderTrackingTab() {
+  var now = new Date();
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('track-date').textContent = days[now.getDay()]+' · '+months[now.getMonth()]+' '+now.getDate();
+
+  var logs = appState.logs;
+  var recent = logs.slice(-7);
+
+  // BP sparkline
+  var sysVals = recent.map(function(l){return l.sys;}).filter(Boolean);
+  document.getElementById('bp-spark').innerHTML = spark(sysVals, T.primary, 28);
+
+  // Sleep sparkline
+  var sleepVals = recent.map(function(l){return l.sleep;}).filter(Boolean);
+  document.getElementById('sleep-spark').innerHTML = spark(sleepVals, T.accent, 24);
+
+  // Charts
+  var weightVals = recent.map(function(l){return l.weight;}).filter(Boolean);
+  document.getElementById('weight-spark').innerHTML = spark(weightVals, T.green, 36);
+
+  var moodVals = recent.map(function(l){return l.mood;}).filter(Boolean);
+  document.getElementById('mood-spark').innerHTML = spark(moodVals, '#ffaa7a', 36);
+
+  // Symptom chips
+  document.getElementById('sym-chips').innerHTML = SYMS_LIST.map(function(s) {
+    var on = activeSymptoms.indexOf(s)>=0;
+    return '<button onclick="toggleSym(\''+s+'\')" style="padding:7px 13px;border-radius:20px;border:1.5px solid '+(on?T.primary:'transparent')+';cursor:pointer;background:'+(on?'rgba(255,107,74,.22)':'rgba(255,255,255,.06)')+';color:'+(on?T.primary:T.text)+';font-family:Nunito,sans-serif;font-size:12.5px;font-weight:700;transition:all .15s">'+s+'</button>';
+  }).join('');
+}
+
+function updateSleepDisplay() {
+  var v = document.getElementById('t-sleep').value;
+  document.getElementById('sleep-display').innerHTML = v+'<span style="font-size:12px;color:rgba(254,240,230,.48)">h</span>';
+}
+
+function toggleSym(s) {
+  var idx = activeSymptoms.indexOf(s);
+  if (idx>=0) activeSymptoms.splice(idx,1); else activeSymptoms.push(s);
+  renderTrackingTab();
+}
+
+function saveLog() {
+  var sys = parseInt(document.getElementById('t-sys').value)||null;
+  var dia = parseInt(document.getElementById('t-dia').value)||null;
+  var weight = parseFloat(document.getElementById('t-weight').value)||null;
+  var sleep = parseFloat(document.getElementById('t-sleep').value)||7;
+
+  appState.logs.push({
+    date: new Date().toISOString(),
+    sys:sys, dia:dia, weight:weight, sleep:sleep,
+    mood:3, symptoms:activeSymptoms.slice(), notes:''
+  });
+  persist();
+  streakDays = computeStreak();
+
+  ['t-sys','t-dia','t-weight'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('t-sleep').value=7;
+  updateSleepDisplay();
+  activeSymptoms = [];
+
+  var btn = document.getElementById('save-btn');
+  btn.textContent = '✓ Saved to your record';
+  btn.style.background = T.green;
+  setTimeout(function(){
+    btn.textContent = "Save today's entry";
+    btn.style.background = T.primary;
+  }, 2200);
+
+  renderTrackingTab();
+  if (activeTab==='baby') renderBabyTab();
+}
+
+// ── Specialists tab ───────────────────────────────────────────────────────────
+function renderSpecialistsTab() {
+  var el = document.getElementById('spec-content');
+
+  if (specView==='call') {
+    var doc = DOCS.find(function(d){return d.id===specDocId;});
+    var fmt = function(s){ return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); };
+    el.innerHTML = '<div class="screen-in" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background:radial-gradient(ellipse at 50% 30%,rgba(76,175,125,.12),#110804);padding:58px 20px 40px;min-height:0">'+
+      '<div style="text-align:center">'+
+        '<div style="font-size:10.5px;color:rgba(255,255,255,.4);letter-spacing:1.3px;font-weight:800">CONNECTED</div>'+
+        '<div id="call-timer" style="font-size:16px;color:'+T.green+';font-weight:900;margin-top:4px">00:00</div>'+
+      '</div>'+
+      '<div style="text-align:center">'+
+        '<div style="width:116px;height:116px;border-radius:58px;background:linear-gradient(135deg,'+T.primary+','+T.accent+');margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:48px;animation:callRing 2.4s ease-in-out infinite">'+doc.e+'</div>'+
+        '<div style="font-size:20px;font-weight:900;color:'+T.text+'">'+doc.name+'</div>'+
+        '<div style="font-size:13px;color:'+T.muted+';margin-top:3px">'+doc.role+'</div>'+
+      '</div>'+
+      '<div class="card" style="width:100%;padding:13px 16px;background:rgba(255,255,255,.05)">'+
+        '<div class="lbl">SHARED WITH DOCTOR</div>'+
+        '<div style="font-size:13px;color:rgba(254,240,230,.75);line-height:1.6">'+buildContextSummary()+'</div>'+
+      '</div>'+
+      '<button onclick="endCall()" style="width:64px;height:64px;border-radius:32px;background:#e53935;border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 20px rgba(229,57,53,.5)">📵</button>'+
+    '</div>';
+    if (!callTimer) callTimer = setInterval(function(){
+      callSecs++;
+      var t = document.getElementById('call-timer');
+      if (t) t.textContent = String(Math.floor(callSecs/60)).padStart(2,'0')+':'+String(callSecs%60).padStart(2,'0');
+    }, 1000);
+    return;
+  }
+
+  if (specView==='brief') {
+    var doc = DOCS.find(function(d){return d.id===specDocId;});
+    var rows = buildBriefRows();
+    el.innerHTML = '<div class="screen-in" style="padding:0 20px 24px;flex:1;overflow-y:auto">'+
+      '<div style="height:58px"></div>'+
+      '<button onclick="specBack(\'profile\')" style="background:none;border:none;cursor:pointer;color:'+T.primary+';font-family:Nunito;font-weight:800;font-size:13.5px;padding:0;margin-bottom:14px">← Back</button>'+
+      '<div style="font-size:22px;font-weight:900;color:'+T.text+'">Before your call</div>'+
+      '<div style="font-size:13px;color:'+T.muted+';margin-top:2px;margin-bottom:18px">This will be shared with '+doc.name+'</div>'+
+      '<div style="display:flex;flex-direction:column;gap:9px;margin-bottom:20px">'+
+        rows.map(function(r){
+          return '<div class="card" style="padding:11px 15px;display:flex;justify-content:space-between;align-items:center">'+
+            '<span style="font-size:12.5px;color:'+T.muted+';font-weight:600">'+r[0]+'</span>'+
+            '<span style="font-size:13.5px;font-weight:800;color:'+T.text+'">'+r[1]+'</span>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+      '<button class="btn-primary" onclick="startCall()" style="background:'+T.green+'">📞 Begin call with '+doc.name.split(' ')[1]+'</button>'+
+    '</div>';
+    return;
+  }
+
+  if (specView==='profile') {
+    var doc = DOCS.find(function(d){return d.id===specDocId;});
+    el.innerHTML = '<div class="screen-in" style="padding:0 20px 24px;flex:1;overflow-y:auto">'+
+      '<div style="height:58px"></div>'+
+      '<button onclick="specBack(\'list\')" style="background:none;border:none;cursor:pointer;color:'+T.primary+';font-family:Nunito;font-weight:800;font-size:13.5px;padding:0;margin-bottom:14px">← Specialists</button>'+
+      '<div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">'+
+        '<div style="width:72px;height:72px;border-radius:36px;background:linear-gradient(135deg,'+T.primary+','+T.accent+');display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0;box-shadow:0 0 24px rgba(255,107,74,.35)">'+doc.e+'</div>'+
+        '<div>'+
+          '<div style="font-size:18px;font-weight:900;color:'+T.text+'">'+doc.name+'</div>'+
+          '<div style="font-size:12px;color:'+T.muted+';margin-top:1px">'+doc.role+'</div>'+
+          '<div style="font-size:13px;color:'+T.primary+';font-weight:800;margin-top:4px">⭐ '+doc.rating+' · '+doc.reviews+' reviews</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:11px;margin-bottom:18px">'+
+        '<div class="card"><div class="lbl">About</div><div style="font-size:13.5px;color:'+T.text+';line-height:1.6">'+doc.bio+'</div></div>'+
+        '<div class="card"><div class="lbl">Speciality</div><div style="font-size:14.5px;font-weight:700;color:'+T.text+'">'+doc.spec+'</div></div>'+
+        '<div class="card card-glow" style="padding:13px 16px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center">'+
+            '<div><div class="lbl">Wait time</div><div style="font-size:20px;font-weight:900;color:'+T.primary+'">'+doc.wait+'</div></div>'+
+            '<div style="width:12px;height:12px;border-radius:6px;background:'+T.green+';box-shadow:0 0 0 5px rgba(76,175,125,.25)"></div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<button class="btn-primary" onclick="specNext()">Review context & start →</button>'+
+    '</div>';
+    return;
+  }
+
+  // List
+  el.innerHTML = '<div class="screen-in" style="padding:0 20px 24px;flex:1;overflow-y:auto">'+
+    '<div style="height:58px"></div>'+
+    '<div style="font-size:24px;font-weight:900;color:'+T.text+'">Specialists</div>'+
+    '<div style="font-size:13px;color:'+T.muted+';margin-top:2px;margin-bottom:18px">UK-based · doctor sees your full picture</div>'+
+    '<div style="display:flex;flex-direction:column;gap:11px">'+
+      DOCS.map(function(d){
+        return '<div class="card" onclick="'+(d.avail?'openDoc('+d.id+')':'')+'" style="opacity:'+(d.avail?1:.5)+';cursor:'+(d.avail?'pointer':'default')+'">'+
+          '<div style="display:flex;gap:13px;align-items:center">'+
+            '<div style="width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,'+T.primary+','+T.accent+');display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">'+d.e+'</div>'+
+            '<div style="flex:1">'+
+              '<div style="font-size:14.5px;font-weight:800;color:'+T.text+'">'+d.name+'</div>'+
+              '<div style="font-size:11.5px;color:'+T.muted+';margin-top:1px">'+d.role+'</div>'+
+              '<div style="display:flex;gap:8px;margin-top:5px;align-items:center;flex-wrap:wrap">'+
+                '<span style="font-size:12px;color:'+T.primary+';font-weight:800">⭐ '+d.rating+'</span>'+
+                '<span style="font-size:12px;color:'+T.muted+'">'+d.wait+' wait</span>'+
+                '<span style="font-size:10px;background:'+(d.avail?'rgba(76,175,125,.18)':'rgba(255,255,255,.06)')+';color:'+(d.avail?T.green:T.muted)+';padding:2px 8px;border-radius:9px;font-weight:800">'+(d.avail?'Available':'Busy')+'</span>'+
+              '</div>'+
+            '</div>'+
+            (d.avail?'<div style="color:'+T.muted+';font-size:20px">›</div>':'')+
+          '</div>'+
+        '</div>';
+      }).join('')+
+    '</div>'+
+  '</div>';
+}
+
+function openDoc(id) { specDocId=id; specView='profile'; renderSpecialistsTab(); }
+function specBack(v) { specView=v; renderSpecialistsTab(); }
+function specNext()  { specView='brief'; renderSpecialistsTab(); }
+function startCall() { specView='call'; callSecs=0; renderSpecialistsTab(); }
+function endCall()   {
+  clearInterval(callTimer); callTimer=null;
+  specView='list'; specDocId=null; renderSpecialistsTab();
+}
+
+function buildContextSummary() {
+  var logs = appState.logs.slice(-7);
+  var parts = ['Week '+appState.currentWeek];
+  var bpLogs = logs.filter(function(l){return l.sys&&l.dia;});
+  if (bpLogs.length>0) {
+    var avgSys=Math.round(bpLogs.reduce(function(a,l){return a+l.sys;},0)/bpLogs.length);
+    var avgDia=Math.round(bpLogs.reduce(function(a,l){return a+l.dia;},0)/bpLogs.length);
+    parts.push('BP avg '+avgSys+'/'+avgDia);
+  }
+  var slLogs = logs.filter(function(l){return l.sleep;});
+  if (slLogs.length>0) {
+    var avg=(slLogs.reduce(function(a,l){return a+l.sleep;},0)/slLogs.length).toFixed(1);
+    parts.push('Sleep '+avg+'h avg');
+  }
+  var allSyms=[];
+  logs.forEach(function(l){if(l.symptoms)l.symptoms.forEach(function(s){if(allSyms.indexOf(s)<0)allSyms.push(s);});});
+  if (allSyms.length>0) parts.push(allSyms.join(', '));
+  parts.push('🔥 '+streakDays+'-day streak');
+  return parts.join(' · ');
+}
+
+function buildBriefRows() {
+  var logs = appState.logs.slice(-7);
+  var rows = [['Current week','Week '+appState.currentWeek+' of 40']];
+  var bpLogs = logs.filter(function(l){return l.sys&&l.dia;});
+  if (bpLogs.length>0) {
+    var avgSys=Math.round(bpLogs.reduce(function(a,l){return a+l.sys;},0)/bpLogs.length);
+    var avgDia=Math.round(bpLogs.reduce(function(a,l){return a+l.dia;},0)/bpLogs.length);
+    var ok = avgSys<=130&&avgDia<=85 ? ' ✓' : '';
+    rows.push(['Blood pressure',avgSys+' / '+avgDia+' mmHg'+ok]);
+  }
+  var wLogs = logs.filter(function(l){return l.weight;});
+  if (wLogs.length>1) {
+    var diff = (wLogs[wLogs.length-1].weight - wLogs[0].weight).toFixed(1);
+    rows.push(['Weight this week',(diff>0?'+':'')+diff+' kg']);
+  }
+  var slLogs = logs.filter(function(l){return l.sleep;});
+  if (slLogs.length>0) {
+    var avg=(slLogs.reduce(function(a,l){return a+l.sleep;},0)/slLogs.length).toFixed(1);
+    rows.push(['Sleep average',avg+' h per night']);
+  }
+  var allSyms=[];
+  logs.forEach(function(l){if(l.symptoms)l.symptoms.forEach(function(s){if(allSyms.indexOf(s)<0)allSyms.push(s);});});
+  if (allSyms.length>0) rows.push(['Symptoms',allSyms.join(' · ')]);
+  rows.push(['Logging streak','🔥 '+streakDays+' consecutive days']);
+  return rows;
+}
+
+// ── Tab nav ───────────────────────────────────────────────────────────────────
+var TABS = ['timeline','tracking','baby','specialists'];
+var TAB_EMOJIS = {timeline:'🗓',tracking:'📋',baby:'🌸',specialists:'🩺'};
+var TAB_LABELS = {timeline:'Timeline',tracking:'Log',baby:'Baby',specialists:'Doctors'};
+
+function switchTab(tab) {
+  if (activeTab===tab) return;
+  TABS.forEach(function(t) {
+    var screen = document.getElementById('screen-'+t);
+    var btn = document.getElementById('tb-'+t);
+    if (!screen||!btn) return;
+    var on = t===tab;
+    screen.classList.toggle('active', on);
+    var e = btn.querySelector('.tab-e');
+    var l = btn.querySelector('.tab-lbl');
+    var dot = btn.querySelector('.tab-dot');
+    e.style.filter = on?'none':'grayscale(1)';
+    e.style.opacity = on?'1':'.38';
+    l.style.color = on?T.primary:T.muted;
+    if (on) {
+      if (!dot) { var d=document.createElement('div'); d.className='tab-dot'; btn.appendChild(d); }
+    } else {
+      if (dot) dot.remove();
+    }
+  });
+  activeTab = tab;
+  if (tab==='baby') renderBabyTab();
+  if (tab==='timeline') renderTimelineTab();
+  if (tab==='tracking') renderTrackingTab();
+  if (tab==='specialists') renderSpecialistsTab();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
 window.onload = function() {
-  var s = localStorage.getItem('bloom');
-  if (s) { var p=JSON.parse(s); appState.name=p.name||''; appState.currentWeek=p.currentWeek||12; appState.logs=p.logs||[]; }
-  if (!appState.name) { document.getElementById('onboarding').classList.remove('hidden'); return; }
+  var s = localStorage.getItem('bloom2') || localStorage.getItem('bloom');
+  if (s) {
+    try {
+      var p = JSON.parse(s);
+      appState.name = p.name||'';
+      appState.currentWeek = p.currentWeek||12;
+      appState.logs = p.logs||[];
+    } catch(e){}
+  }
+  if (!appState.name) {
+    document.getElementById('onboarding').classList.remove('hidden');
+    return;
+  }
   boot();
 };
 
-function persist() { localStorage.setItem('bloom', JSON.stringify(appState)); }
-
 function submitOnboarding() {
-  var n=document.getElementById('ob-name').value.trim();
-  var w=parseInt(document.getElementById('ob-week').value);
-  if (!n || !w || w<1 || w>40) { alert('Please enter your name and a week between 1 and 40.'); return; }
+  var n = document.getElementById('ob-name').value.trim();
+  var w = parseInt(document.getElementById('ob-week').value);
+  if (!n||!w||w<1||w>40) { alert('Please enter your name and a week (1–40).'); return; }
   appState.name=n; appState.currentWeek=w;
   persist();
   document.getElementById('onboarding').classList.add('hidden');
@@ -313,331 +976,12 @@ function submitOnboarding() {
 }
 
 function boot() {
-  updateHeader();
-  renderTimeline();
-  renderSpecialists();
-  renderCharts();
-  renderBaby();
-  checkBP();
-  document.getElementById('t-mood').oninput = function() { document.getElementById('t-mood-val').textContent = this.value; };
-}
-
-function updateHeader() {
-  document.getElementById('header-name').textContent = appState.name;
-  document.getElementById('header-week').textContent = 'Week '+appState.currentWeek+' of 40';
-  var left = 40 - appState.currentWeek;
-  document.getElementById('header-sub').textContent = left > 0 ? left+' weeks to go' : 'Due any day now';
-}
-
-// ── Timeline ─────────────────────────────────────────────────────────────────
-function renderTimeline() {
-  var el = document.getElementById('timeline-list');
-  el.innerHTML = '';
-  var scrollTarget = null;
-  for (var w=1; w<=40; w++) {
-    var d = getWD(w);
-    var past = w < appState.currentWeek;
-    var cur  = w === appState.currentWeek;
-    var div  = document.createElement('div');
-    div.className = 'rounded-2xl border p-4 ' + (cur ? 'bg-[#6b9e7e] border-[#6b9e7e] shadow-lg' : past ? 'bg-white border-stone-100 opacity-50' : 'bg-white border-stone-100');
-    var badge = cur ? '<span class="text-[10px] bg-white/25 text-white rounded-full px-2 py-0.5 font-medium">This week</span>'
-              : w>appState.currentWeek ? '<span class="text-[10px] bg-stone-100 text-stone-400 rounded-full px-2 py-0.5">Coming up</span>' : '';
-    var tc = cur ? 'text-white' : 'text-[#4a7c5e]';
-    var ts = cur ? 'text-white/75' : 'text-stone-500';
-    var ti = cur ? 'text-white/70' : 'text-[#6b9e7e]';
-    var tb = cur ? 'border-white/20' : 'border-stone-100';
-    var ta = cur ? 'text-white font-semibold' : 'text-stone-700 font-medium';
-    div.innerHTML =
-      '<div class="flex items-center justify-between mb-3"><span class="'+tc+' font-semibold serif text-base">Week '+w+'</span>'+badge+'</div>'+
-      '<div class="space-y-3">'+
-        '<div><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#127807; Your baby</p><p class="'+ts+' text-sm leading-relaxed">'+d.b+'</p></div>'+
-        '<div class="border-t '+tb+' pt-3"><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#129340; How you may feel</p><p class="'+ts+' text-sm leading-relaxed">'+d.m+'</p></div>'+
-        '<div class="border-t '+tb+' pt-3"><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#9889; Watch for</p><p class="'+ts+' text-sm leading-relaxed">'+d.w+'</p></div>'+
-        '<div class="border-t '+tb+' pt-3"><p class="'+ti+' text-[11px] font-semibold mb-0.5">&#10003; This week</p><p class="'+ta+' text-sm leading-relaxed">'+d.a+'</p></div>'+
-      '</div>';
-    el.appendChild(div);
-    if (cur) scrollTarget = div;
-  }
-  if (scrollTarget) setTimeout(function(){ scrollTarget.scrollIntoView({behavior:'smooth',block:'start'}); },150);
-}
-
-// ── Tracking ─────────────────────────────────────────────────────────────────
-function toggleSym(btn, s) {
-  if (activeSymptoms.has(s)) {
-    activeSymptoms.delete(s);
-    btn.className = 'sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500';
-  } else {
-    activeSymptoms.add(s);
-    btn.className = 'sym-chip px-3 py-1 rounded-full text-xs border border-[#6b9e7e] bg-[#6b9e7e] text-white';
-  }
-}
-
-function saveLog() {
-  var sys=parseInt(document.getElementById('t-sys').value)||null;
-  var dia=parseInt(document.getElementById('t-dia').value)||null;
-  appState.logs.push({
-    date: new Date().toISOString(),
-    sys: sys, dia: dia,
-    weight: parseFloat(document.getElementById('t-weight').value)||null,
-    sleep:  parseFloat(document.getElementById('t-sleep').value)||null,
-    mood:   parseInt(document.getElementById('t-mood').value),
-    symptoms: Array.from(activeSymptoms),
-    notes: document.getElementById('t-notes').value.trim()
-  });
-  persist();
-  ['t-sys','t-dia','t-weight','t-sleep','t-notes'].forEach(function(id){ document.getElementById(id).value=''; });
-  document.getElementById('t-mood').value=3;
-  document.getElementById('t-mood-val').textContent='3';
-  activeSymptoms.clear();
-  document.querySelectorAll('.sym-chip').forEach(function(c){ c.className='sym-chip px-3 py-1 rounded-full text-xs border border-stone-200 text-stone-500'; });
-  var ok=document.getElementById('save-ok');
-  ok.classList.remove('hidden'); setTimeout(function(){ ok.classList.add('hidden'); },2000);
-  renderCharts(); checkBP(); renderBaby();
-}
-
-function renderCharts() {
-  var r = appState.logs.slice(-7);
-  var sys=r.map(function(l){return l.sys;}).filter(Boolean);
-  var dia=r.map(function(l){return l.dia;}).filter(Boolean);
-  var bpEl=document.getElementById('chart-bp');
-  bpEl.innerHTML = sys.length ? spark(sys,'#e05c5c')+spark(dia,'#e09a5c') : '<p class="text-xs text-stone-300 italic pt-2">No data yet</p>';
-  document.getElementById('chart-weight').innerHTML = spark(r.map(function(l){return l.weight;}).filter(Boolean),'#6b9e7e');
-  document.getElementById('chart-mood').innerHTML   = spark(r.map(function(l){return l.mood;}).filter(Boolean),'#9e7e6b');
-  document.getElementById('chart-sleep').innerHTML  = spark(r.map(function(l){return l.sleep;}).filter(Boolean),'#6b8a9e');
-}
-
-function checkBP() {
-  var r=appState.logs.slice(-3);
-  var elevated=r.filter(function(l){ return (l.sys&&l.sys>140)||(l.dia&&l.dia>90); }).length;
-  if (elevated>=2) document.getElementById('bp-alert').classList.remove('hidden');
-}
-
-// ── Baby ─────────────────────────────────────────────────────────────────────
-function calcBabyScore() {
-  var score = 0;
-  var nudges = [];
-  var logs = appState.logs;
-  var recent = logs.slice(-7);
-
-  // Logged today?
-  var todayStr = new Date().toDateString();
-  var loggedToday = logs.some(function(l){ return new Date(l.date).toDateString() === todayStr; });
-  if (loggedToday) {
-    score += 25;
-  } else {
-    nudges.push({icon:'⚡', text:"Log today's data to boost your baby's energy!"});
-  }
-
-  // Streak
-  var streak = 0;
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(); d.setDate(d.getDate() - i);
-    var ds = d.toDateString();
-    if (logs.some(function(l){ return new Date(l.date).toDateString() === ds; })) { streak++; }
-    else break;
-  }
-  if (streak >= 3) score += 10;
-  if (streak >= 7) score += 10;
-
-  // BP
-  var bpLogs = recent.filter(function(l){ return l.sys && l.dia; });
-  if (bpLogs.length > 0) {
-    var avgSys = bpLogs.reduce(function(a,l){return a+l.sys;},0) / bpLogs.length;
-    var avgDia = bpLogs.reduce(function(a,l){return a+l.dia;},0) / bpLogs.length;
-    if (avgSys <= 130 && avgDia <= 85) { score += 20; }
-    else if (avgSys > 140 || avgDia > 90) { score += 5; nudges.push({icon:'🩺', text:"BP has been elevated — worth mentioning to your doctor"}); }
-    else { score += 12; }
-  } else {
-    nudges.push({icon:'💓', text:"Log your blood pressure to track heart health"});
-  }
-
-  // Sleep
-  var sleepLogs = recent.filter(function(l){ return l.sleep; });
-  if (sleepLogs.length > 0) {
-    var avgSleep = sleepLogs.reduce(function(a,l){return a+l.sleep;},0) / sleepLogs.length;
-    if (avgSleep >= 7) { score += 20; }
-    else if (avgSleep >= 6) { score += 12; nudges.push({icon:'😴', text:"Sleep is below 7 hrs — try a pregnancy pillow for better rest"}); }
-    else { score += 5; nudges.push({icon:'😴', text:"Low sleep this week — rest is crucial right now"}); }
-  } else { score += 10; }
-
-  // Mood
-  var moodLogs = recent.filter(function(l){ return l.mood; });
-  if (moodLogs.length > 0) {
-    var avgMood = moodLogs.reduce(function(a,l){return a+l.mood;},0) / moodLogs.length;
-    if (avgMood >= 3.5) { score += 15; }
-    else if (avgMood >= 2.5) { score += 8; nudges.push({icon:'🌸', text:"Mood's been lower — be extra gentle with yourself"}); }
-    else { score += 2; nudges.push({icon:'💚', text:"Mood has been low — consider reaching out to your perinatal team"}); }
-  } else { score += 8; }
-
-  return { score: Math.min(100, score), nudges: nudges, streak: streak };
-}
-
-function getBabyAvatarSVG(state, week) {
-  var bodyColor = state==='happy' ? '#6b9e7e' : state==='good' ? '#7fb08e' : state==='okay' ? '#9db8a8' : '#b8a898';
-  var cheek = (state==='happy'||state==='good') ? '<circle cx="37" cy="57" r="6" fill="#ff9999" opacity="0.45"/><circle cx="63" cy="57" r="6" fill="#ff9999" opacity="0.45"/>' : '';
-  var eyes = state==='needs-love'
-    ? '<line x1="39" y1="48" x2="44" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="44" y1="48" x2="39" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="56" y1="48" x2="61" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="61" y1="48" x2="56" y2="53" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>'
-    : '<circle cx="42" cy="50" r="3.5" fill="#fff"/><circle cx="58" cy="50" r="3.5" fill="#fff"/><circle cx="43.2" cy="50.5" r="1.8" fill="#2d3748"/><circle cx="59.2" cy="50.5" r="1.8" fill="#2d3748"/>';
-  var mouth = state==='happy' ? '<path d="M 43 61 Q 50 68 57 61" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
-            : state==='good'  ? '<path d="M 43 62 Q 50 67 57 62" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
-            : state==='okay'  ? '<line x1="44" y1="63" x2="56" y2="63" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>'
-            :                   '<path d="M 43 65 Q 50 60 57 65" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
-  var sprout1 = week > 8  ? '<path d="M50 34 Q62 22 59 10" stroke="#6b9e7e" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="59" cy="9" rx="5" ry="7" fill="#6b9e7e" transform="rotate(20,59,9)"/>' : '';
-  var sprout2 = week > 20 ? '<path d="M50 34 Q38 22 41 10" stroke="#6b9e7e" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="41" cy="9" rx="5" ry="7" fill="#6b9e7e" transform="rotate(-20,41,9)"/>' : '';
-  var zzz = state==='needs-love' ? '<text x="66" y="38" font-size="13" fill="#b8a898" opacity="0.9">z</text><text x="74" y="28" font-size="10" fill="#b8a898" opacity="0.7">z</text>' : '';
-  return '<svg viewBox="0 0 100 105" width="130" height="136" style="display:block;margin:auto">'
-    + sprout1 + sprout2
-    + '<ellipse cx="50" cy="66" rx="28" ry="31" fill="' + bodyColor + '"/>'
-    + cheek + eyes + mouth
-    + '<path d="M22 66 Q17 54 26 49" stroke="' + bodyColor + '" stroke-width="8" fill="none" stroke-linecap="round"/>'
-    + '<path d="M78 66 Q83 54 74 49" stroke="' + bodyColor + '" stroke-width="8" fill="none" stroke-linecap="round"/>'
-    + zzz
-    + '</svg>';
-}
-
-function renderBaby() {
-  var res = calcBabyScore();
-  var score = res.score;
-  var state = score >= 75 ? 'happy' : score >= 50 ? 'good' : score >= 30 ? 'okay' : 'needs-love';
-  var labels = { happy:'Thriving', good:'Doing well', okay:'Needs more data', 'needs-love':'Needs attention' };
-  var messages = {
-    happy: 'Your baby is happy and glowing — your consistent tracking is paying off! Keep it up.',
-    good: 'Things are looking good. A few more logs and your baby will be glowing!',
-    okay: 'Log today to help your baby grow stronger. Every entry counts.',
-    'needs-love': 'Your baby misses you! Log your data and check the nudges below.'
-  };
-  var sparkles = { happy:'✨ ✨ ✨', good:'🌿 ✨', okay:'🌱', 'needs-love':'' };
-  var animClass = { happy:'baby-happy', good:'baby-good', okay:'baby-okay', 'needs-love':'baby-okay' };
-
-  document.getElementById('baby-sparkles').innerHTML = '<span class="sparkle-star">'+sparkles[state]+'</span>';
-  document.getElementById('baby-avatar').innerHTML = '<div class="' + animClass[state] + '">' + getBabyAvatarSVG(state, appState.currentWeek) + '</div>';
-  document.getElementById('baby-status-label').textContent = labels[state];
-  document.getElementById('baby-message').textContent = messages[state];
-  document.getElementById('baby-score').textContent = score + '/100';
-
-  var streakEl = document.getElementById('baby-streak');
-  if (res.streak >= 2) {
-    streakEl.textContent = '🔥 ' + res.streak + '-day streak';
-  } else {
-    streakEl.textContent = '';
-  }
-
-  setTimeout(function(){
-    document.getElementById('baby-score-bar').style.width = score + '%';
-    var bar = document.getElementById('baby-score-bar');
-    bar.style.background = score >= 75 ? '#6b9e7e' : score >= 50 ? '#9eb86b' : score >= 30 ? '#e0b85c' : '#e07c5c';
-  }, 50);
-
-  var nudgesEl = document.getElementById('baby-nudges');
-  if (res.nudges.length === 0) {
-    nudgesEl.innerHTML = '<p class="text-xs text-[#6b9e7e] font-medium text-center py-1">All green — great work! &#10003;</p>';
-  } else {
-    nudgesEl.innerHTML = res.nudges.map(function(n){
-      return '<div class="nudge-card flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">'
-        + '<span class="text-base mt-0.5">'+n.icon+'</span>'
-        + '<p class="text-sm text-amber-800 leading-snug">'+n.text+'</p>'
-        + '</div>';
-    }).join('');
-  }
-
-  document.getElementById('baby-report').textContent = generateReport();
-}
-
-function generateReport() {
-  var w = appState.currentWeek;
-  var logs = appState.logs.slice(-7);
-  if (logs.length === 0) return 'No entries logged this week yet.\nStart tracking to generate your report.';
-
-  var lines = ['Bloom — Week ' + w + ' summary for ' + appState.name + ':'];
-
-  var bpLogs = logs.filter(function(l){ return l.sys && l.dia; });
-  if (bpLogs.length > 0) {
-    var avgSys = Math.round(bpLogs.reduce(function(a,l){return a+l.sys;},0)/bpLogs.length);
-    var avgDia = Math.round(bpLogs.reduce(function(a,l){return a+l.dia;},0)/bpLogs.length);
-    var bpNote = (avgSys<=130&&avgDia<=85) ? 'within normal range' : (avgSys>140||avgDia>90) ? 'ELEVATED — please review' : 'slightly raised';
-    lines.push('• Blood pressure: avg ' + avgSys + '/' + avgDia + ' mmHg (' + bpNote + ')');
-  }
-
-  var wLogs = logs.filter(function(l){return l.weight;});
-  if (wLogs.length > 1) {
-    var wFirst = wLogs[0].weight, wLast = wLogs[wLogs.length-1].weight;
-    var diff = (wLast - wFirst).toFixed(1);
-    lines.push('• Weight: ' + wLast + ' kg (' + (diff>0?'+':'') + diff + ' kg this week)');
-  } else if (wLogs.length===1) {
-    lines.push('• Weight: ' + wLogs[0].weight + ' kg');
-  }
-
-  var sLogs = logs.filter(function(l){return l.sleep;});
-  if (sLogs.length > 0) {
-    var avgSleep = (sLogs.reduce(function(a,l){return a+l.sleep;},0)/sLogs.length).toFixed(1);
-    lines.push('• Sleep: avg ' + avgSleep + ' hrs/night');
-  }
-
-  var mLogs = logs.filter(function(l){return l.mood;});
-  if (mLogs.length > 0) {
-    var avgMood = (mLogs.reduce(function(a,l){return a+l.mood;},0)/mLogs.length).toFixed(1);
-    var mLabel = avgMood>=4?'good':avgMood>=3?'moderate':'low';
-    lines.push('• Mood: avg ' + avgMood + '/5 (' + mLabel + ')');
-  }
-
-  var allSyms = [];
-  logs.forEach(function(l){ if(l.symptoms) l.symptoms.forEach(function(s){ if(allSyms.indexOf(s)<0) allSyms.push(s); }); });
-  if (allSyms.length > 0) lines.push('• Symptoms reported: ' + allSyms.join(', '));
-
-  lines.push('• Entries logged: ' + logs.length + ' this week');
-  return lines.join('\n');
-}
-
-function copyReport() {
-  var text = document.getElementById('baby-report').textContent;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(function(){
-      var ok = document.getElementById('copy-ok');
-      ok.classList.remove('hidden');
-      setTimeout(function(){ ok.classList.add('hidden'); }, 2500);
-    });
-  } else {
-    var ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    var ok = document.getElementById('copy-ok');
-    ok.classList.remove('hidden');
-    setTimeout(function(){ ok.classList.add('hidden'); }, 2500);
-  }
-}
-
-// ── Specialists ──────────────────────────────────────────────────────────────
-function renderSpecialists() {
-  document.getElementById('specialists-list').innerHTML = SPECS.map(function(s){
-    return '<div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">'+
-      '<div class="flex items-start justify-between mb-2">'+
-        '<div>'+
-          '<p class="text-[11px] font-semibold text-[#6b9e7e] uppercase tracking-wide mb-0.5">'+s.type+'</p>'+
-          '<h3 class="serif font-medium text-stone-700 text-base">'+s.name+'</h3>'+
-        '</div>'+
-        '<span class="text-sm font-semibold text-stone-600 bg-stone-50 border border-stone-100 px-3 py-1 rounded-full">&#163;'+s.price+'</span>'+
-      '</div>'+
-      '<p class="text-sm text-stone-500 leading-relaxed mb-3">'+s.desc+'</p>'+
-      '<div class="flex items-center justify-between">'+
-        '<p class="text-xs text-stone-400">Next available: '+s.avail+'</p>'+
-        '<a href="mailto:'+s.email+'?subject=Consultation+enquiry" class="bg-[#6b9e7e] hover:bg-[#5a8a6b] text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors">Book consultation</a>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
-
-// ── Nav ──────────────────────────────────────────────────────────────────────
-var ALL_TABS = ['timeline','tracking','baby','specialists'];
-
-function switchTab(tab) {
-  document.querySelectorAll('.tab-pane').forEach(function(el){ el.classList.add('hidden'); });
-  ALL_TABS.forEach(function(t){
-    var btn=document.getElementById('nav-'+t);
-    if (!btn) return;
-    if (t===tab) { btn.classList.add('text-[#6b9e7e]'); btn.classList.remove('text-stone-400'); }
-    else { btn.classList.remove('text-[#6b9e7e]'); btn.classList.add('text-stone-400'); }
-  });
-  document.getElementById('tab-'+tab).classList.remove('hidden');
+  streakDays = computeStreak();
+  babyEnergy = getWeekData(appState.currentWeek).energy;
+  renderBabyTab();
+  renderTimelineTab();
+  renderTrackingTab();
+  renderSpecialistsTab();
 }
 </script>
 </body>
