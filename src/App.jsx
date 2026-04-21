@@ -358,7 +358,7 @@ function JourneyTab({ week, streak, name, pathway }) {
         transform: bouncing ? 'scale(0.97)' : 'scale(1)',
         transition: 'transform 0.18s',
       }}>
-        <HeroScene charState={charState} streak={streak} loggedToday={true} thought={thought} pathwayColor={pc} onTap={handleTap} />
+        <HeroScene charState={charState} streak={streak} loggedToday={true} thought={thought} pathwayColor={pc} onTap={handleTap} energy={energy} />
         {streak >= 7 && (
           <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(14,7,3,0.75)', borderRadius: 10, padding: '4px 10px', backdropFilter: 'blur(8px)', border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ fontSize: 12 }}>🔥</span>

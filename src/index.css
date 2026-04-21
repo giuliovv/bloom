@@ -30,6 +30,12 @@ input  { font-family: 'Nunito', system-ui, sans-serif; }
 @keyframes zonePulse    { 0%,100%{opacity:.55;transform:scale(1)} 50%{opacity:1;transform:scale(1.06)} }
 @keyframes pathwayPulse { 0%,100%{opacity:.7} 50%{opacity:1} }
 @keyframes onboardIn    { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes eyeBlink     { 0%,88%,100%{transform:scaleY(1)} 93%{transform:scaleY(0.07)} }
+@keyframes hairSway     { 0%,100%{transform:rotate(0deg)} 35%{transform:rotate(4deg)} 70%{transform:rotate(-3deg)} }
+@keyframes contractPulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+@keyframes treeWave     { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(2deg)} }
+@keyframes tailWag      { 0%,100%{transform:rotate(0deg)} 40%{transform:rotate(12deg)} 70%{transform:rotate(-8deg)} }
+@keyframes blushPulse   { 0%,100%{opacity:.28} 50%{opacity:.45} }
 
 .screen     { animation: screenIn   .28s cubic-bezier(.2,.8,.3,1) both; }
 .onboard-in { animation: onboardIn  .4s  cubic-bezier(.2,.8,.3,1) both; }
